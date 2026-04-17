@@ -1,0 +1,184 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String         @id @default(uuid())
+  email         String         @unique
+  password      String
+  firstName     String
+  lastName      String
+  role          Role           @default(USER)
+  organizationId String?
+  organization  Organization?  @relation(fields: [organizationId], references: [id])
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  sessions      Session[]
+  budgets       Budget[]
+  alerts        Alert[]
+
+  @@index([email])
+  @@index([organizationId])
+}
+
+model Organization {
+  id              String            @id @default(uuid())
+  name            String
+  slug            String            @unique
+  users           User[]
+  cloudAccounts   CloudAccount[]
+  budgets         Budget[]
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  @@index([slug])
+}
+
+model CloudAccount {
+  id              String         @id @default(uuid())
+  provider        CloudProvider
+  accountId       String
+  accountName     String
+  credentials     Json
+  organizationId  String
+  organization    Organization   @relation(fields: [organizationId], references: [id])
+  isActive        Boolean        @default(true)
+  lastSyncAt      DateTime?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  billingData     BillingData[]
+  costAllocations CostAllocation[]
+
+  @@unique([provider, accountId, organizationId])
+  @@index([organizationId])
+  @@index([provider])
+}
+
+model BillingData {
+  id              String        @id @default(uuid())
+  cloudAccountId  String
+  cloudAccount    CloudAccount  @relation(fields: [cloudAccountId], references: [id])
+  date            DateTime
+  service         String
+  resourceId      String?
+  resourceName    String?
+  region          String?
+  cost            Decimal       @db.Decimal(15, 4)
+  currency        String        @default("USD")
+  usageQuantity   Decimal?      @db.Decimal(15, 4)
+  usageUnit       String?
+  tags            Json?
+  metadata        Json?
+  createdAt       DateTime      @default(now())
+
+  @@unique([cloudAccountId, date, service, resourceId])
+  @@index([cloudAccountId, date])
+  @@index([service])
+  @@index([date])
+}
+
+model Budget {
+  id              String        @id @default(uuid())
+  name            String
+  amount          Decimal       @db.Decimal(15, 2)
+  period          BudgetPeriod
+  startDate       DateTime
+  endDate         DateTime?
+  threshold       Int           @default(80)
+  organizationId  String
+  organization    Organization  @relation(fields: [organizationId], references: [id])
+  userId          String
+  user            User          @relation(fields: [userId], references: [id])
+  filters         Json?
+  isActive        Boolean       @default(true)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  alerts          Alert[]
+
+  @@index([organizationId])
+  @@index([userId])
+}
+
+model Alert {
+  id          String      @id @default(uuid())
+  type        AlertType
+  severity    Severity
+  title       String
+  message     String
+  budgetId    String?
+  budget      Budget?     @relation(fields: [budgetId], references: [id])
+  userId      String
+  user        User        @relation(fields: [userId], references: [id])
+  isRead      Boolean     @default(false)
+  metadata    Json?
+  createdAt   DateTime    @default(now())
+
+  @@index([userId, isRead])
+  @@index([createdAt])
+}
+
+model CostAllocation {
+  id              String        @id @default(uuid())
+  cloudAccountId  String
+  cloudAccount    CloudAccount  @relation(fields: [cloudAccountId], references: [id])
+  tagKey          String
+  tagValue        String
+  date            DateTime
+  cost            Decimal       @db.Decimal(15, 4)
+  createdAt       DateTime      @default(now())
+
+  @@unique([cloudAccountId, tagKey, tagValue, date])
+  @@index([cloudAccountId, date])
+  @@index([tagKey])
+}
+
+model Session {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([token])
+}
+
+enum Role {
+  ADMIN
+  USER
+  VIEWER
+}
+
+enum CloudProvider {
+  AZURE
+  GCP
+  AWS
+}
+
+enum BudgetPeriod {
+  DAILY
+  WEEKLY
+  MONTHLY
+  QUARTERLY
+  YEARLY
+}
+
+enum AlertType {
+  BUDGET_THRESHOLD
+  ANOMALY
+  COST_SPIKE
+  OPTIMIZATION
+}
+
+enum Severity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}

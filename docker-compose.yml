@@ -1,0 +1,71 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: billing-postgres
+    environment:
+      POSTGRES_DB: billing_db
+      POSTGRES_USER: billing_user
+      POSTGRES_PASSWORD: billing_pass
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - billing-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: billing-redis
+    ports:
+      - "6379:6379"
+    networks:
+      - billing-network
+
+  backend:
+    build:
+      context: ./apps/backend
+      dockerfile: Dockerfile
+    container_name: billing-backend
+    environment:
+      NODE_ENV: development
+      DATABASE_URL: postgresql://billing_user:billing_pass@postgres:5432/billing_db
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: your-secret-key-change-in-production
+      PORT: 4000
+    ports:
+      - "4000:4000"
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - billing-network
+    volumes:
+      - ./apps/backend:/app
+      - /app/node_modules
+
+  frontend:
+    build:
+      context: ./apps/frontend
+      dockerfile: Dockerfile
+    container_name: billing-frontend
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:4000
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    networks:
+      - billing-network
+    volumes:
+      - ./apps/frontend:/app
+      - /app/node_modules
+      - /app/.next
+
+volumes:
+  postgres_data:
+
+networks:
+  billing-network:
+    driver: bridge
