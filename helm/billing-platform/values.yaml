@@ -1,0 +1,171 @@
+# Default values for billing-platform
+# This is a YAML-formatted file.
+
+global:
+  imageRegistry: ""
+  imagePullSecrets:
+    - acr-secret
+
+# Backend configuration
+backend:
+  enabled: true
+  replicaCount: 3
+  image:
+    registry: ${ACR_NAME}.azurecr.io
+    repository: billing-backend
+    tag: latest
+    pullPolicy: IfNotPresent
+  
+  service:
+    type: ClusterIP
+    port: 4000
+  
+  resources:
+    requests:
+      memory: "512Mi"
+      cpu: "500m"
+    limits:
+      memory: "1Gi"
+      cpu: "1000m"
+  
+  autoscaling:
+    enabled: true
+    minReplicas: 3
+    maxReplicas: 10
+    targetCPUUtilizationPercentage: 70
+    targetMemoryUtilizationPercentage: 80
+  
+  env:
+    NODE_ENV: production
+    PORT: "4000"
+    JWT_EXPIRES_IN: "7d"
+  
+  secrets:
+    jwtSecret: ""
+    databaseUrl: ""
+    azureTenantId: ""
+    azureClientId: ""
+    azureClientSecret: ""
+    azureSubscriptionId: ""
+    gcpProjectId: ""
+    gcpBillingAccountId: ""
+
+# Frontend configuration
+frontend:
+  enabled: true
+  replicaCount: 2
+  image:
+    registry: ${ACR_NAME}.azurecr.io
+    repository: billing-frontend
+    tag: latest
+    pullPolicy: IfNotPresent
+  
+  service:
+    type: ClusterIP
+    port: 3000
+  
+  resources:
+    requests:
+      memory: "256Mi"
+      cpu: "250m"
+    limits:
+      memory: "512Mi"
+      cpu: "500m"
+  
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 5
+    targetCPUUtilizationPercentage: 70
+  
+  env:
+    NEXT_PUBLIC_API_URL: "https://api.billing.yourdomain.com"
+
+# PostgreSQL configuration
+postgresql:
+  enabled: true
+  auth:
+    username: billing_user
+    password: ""
+    database: billing_db
+  primary:
+    persistence:
+      enabled: true
+      storageClass: "managed-premium"
+      size: 20Gi
+    resources:
+      requests:
+        memory: "256Mi"
+        cpu: "250m"
+      limits:
+        memory: "512Mi"
+        cpu: "500m"
+
+# Redis configuration
+redis:
+  enabled: true
+  auth:
+    enabled: false
+  master:
+    persistence:
+      enabled: false
+    resources:
+      requests:
+        memory: "128Mi"
+        cpu: "100m"
+      limits:
+        memory: "256Mi"
+        cpu: "200m"
+
+# Ingress configuration
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/proxy-body-size: "50m"
+    nginx.ingress.kubernetes.io/rate-limit: "100"
+  hosts:
+    - host: billing.yourdomain.com
+      paths:
+        - path: /
+          pathType: Prefix
+          service: frontend
+          port: 3000
+    - host: api.billing.yourdomain.com
+      paths:
+        - path: /
+          pathType: Prefix
+          service: backend
+          port: 4000
+  tls:
+    - secretName: billing-tls
+      hosts:
+        - billing.yourdomain.com
+        - api.billing.yourdomain.com
+
+# Monitoring
+monitoring:
+  enabled: true
+  serviceMonitor:
+    enabled: true
+    interval: 30s
+
+# Network Policies
+networkPolicy:
+  enabled: true
+  policyTypes:
+    - Ingress
+    - Egress
+
+# Pod Security
+podSecurityPolicy:
+  enabled: true
+
+# Service Account
+serviceAccount:
+  create: true
+  annotations: {}
+  name: "billing-platform-sa"

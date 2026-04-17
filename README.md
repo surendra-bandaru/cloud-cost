@@ -1,288 +1,278 @@
 # Enterprise Cloud Billing Management Platform
 
-A comprehensive, enterprise-grade cloud billing management platform for Azure and GCP with advanced analytics, budgeting, and cost optimization features.
+Production-grade Kubernetes application for Azure and GCP cloud billing management with automated CI/CD.
 
-## Features
+## 🚀 Features
 
-### Core Capabilities
 - **Multi-Cloud Support**: Azure and GCP billing integration
-- **Real-time Analytics**: Cost trends, forecasting, and anomaly detection
-- **Budget Management**: Set budgets with threshold alerts
-- **Cost Allocation**: Tag-based cost tracking and allocation
-- **Optimization Recommendations**: AI-powered cost savings suggestions
-- **Multi-tenant Architecture**: Organization-based access control
-- **Role-based Access Control**: Admin, User, and Viewer roles
+- **Real-time Analytics**: Cost trends, forecasting, anomaly detection
+- **Budget Management**: Threshold alerts and notifications
+- **Auto-scaling**: HPA for dynamic scaling (3-10 pods backend, 2-5 pods frontend)
+- **High Availability**: Multi-replica deployments with health checks
+- **Secure**: HTTPS/TLS, secrets management, non-root containers
 
-### Technical Features
-- **Modern Stack**: Next.js 14, TypeScript, Prisma, PostgreSQL
-- **Real-time Updates**: WebSocket support for live data
-- **Caching**: Redis for performance optimization
-- **Background Jobs**: Automated billing data sync and budget checks
-- **API Documentation**: Swagger/OpenAPI integration
-- **Docker Support**: Full containerization with Docker Compose
-- **Monorepo**: Turborepo for efficient builds
+## 📦 Tech Stack
 
-## Architecture
+- **Frontend**: Next.js 14, TypeScript, Tailwind CSS
+- **Backend**: Node.jjs 14, TypeScript, Tailwind CSS
+- **Backend**: Node.js, Express, TypeScript, Prisma
+- **Database**: PostgreSQL with StatefulSet
+- **Cache**: Redis
+- **Container Registry**: Azure Container Registry (ACR)
+- **Orchestration**: Kubernetes (AKS)
+- **Package Manager**: Helm 3
+- **CI/CD**: GitHub Actions
+- **Monitoring**: Azure Monitor, Prometheus-ready
+- **SSL**: Let's Encrypt via Cert-Manager
+
+## 📋 Prerequisites
+
+- Azure CLI (`az`)
+- kubectl
+- Helm 3.x
+- Docker
+- GitHub account
+- Azure subscription
+- Domain name (for production)
+
+## 🏗️ Architecture
 
 ```
-cloud-billing-enterprise/
-├── apps/
-│   ├── backend/          # Node.js/Express API
-│   │   ├── src/
-│   │   │   ├── controllers/
-│   │   │   ├── services/
-│   │   │   ├── routes/
-│   │   │   ├── middleware/
-│   │   │   ├── validators/
-│   │   │   └── utils/
-│   │   └── prisma/
-│   └── frontend/         # Next.js 14 App
-│       └── src/
-│           ├── app/
-│           ├── components/
-│           └── lib/
-├── packages/             # Shared packages
-└── docker-compose.yml
+┌─────────────────────────────────────────────────────────┐
+│                  Azure Kubernetes Service                │
+│                                                          │
+│  ┌────────────────────────────────────────────────────┐ │
+│  │  Ingress (NGINX + Let's Encrypt)                   │ │
+│  └──────────────┬─────────────────────────────────────┘ │
+│                 │                                        │
+│  ┌──────────────┴──────────────┬────────────────────┐  │
+│  │                              │                     │  │
+│  │  Frontend (2-5 pods)    Backend (3-10 pods)      │  │
+│  │  Next.js + React        Node.js + Express        │  │
+│  │  Auto-scaling           Auto-scaling + HPA       │  │
+│  └─────────────────────────────┬────────────────────┘  │
+│                                 │                        │
+│  ┌──────────────┬───────────────┴────────────────────┐ │
+│  │              │                                     │ │
+│  │  PostgreSQL  │  Redis                             │ │
+│  │  StatefulSet │  Deployment                        │ │
+│  └──────────────┴────────────────────────────────────┘ │
+└─────────────────────────────────────────────────────────┘
 ```
 
-## Quick Start
+## 🚀 Quick Start
 
-### Prerequisites
-- Node.js 18+
-- Docker & Docker Compose
-- PostgreSQL 15+
-- Redis 7+
+### Option 1: Automated Setup (Recommended)
 
-### Installation
-
-#### Option A: Development with Local Node.js (Recommended for Development)
-
-1. Clone the repository:
 ```bash
+# Clone repository
 git clone https://github.com/surendra-bandaru/cloud-cost.git
 cd cloud-cost
+
+# Make scripts executable
+chmod +x scripts/*.sh
+
+# Setup AKS cluster
+./scripts/setup-aks.sh
+
+# Deploy application
+./scripts/deploy-helm.sh
 ```
 
-2. Start infrastructure only (PostgreSQL + Redis):
+### Option 2: Manual Setup
+
+See [K8S-DEPLOYMENT.md](./K8S-DEPLOYMENT.md) for detailed instructions.
+
+## 📦 GitHub Actions CI/CD
+
+### Setup GitHub Secrets
+
+Go to: Repository → Settings → Secrets and variables → Actions
+
+Add these secrets:
+
+```
+ACR_NAME=youracrname
+ACR_USERNAME=<from Azure>
+ACR_PASSWORD=<from Azure>
+AZURE_CREDENTIALS=<service principal JSON>
+AZURE_RESOURCE_GROUP=billing-platform-rg
+AKS_CLUSTER_NAME=billing-aks-cluster
+DATABASE_URL=postgresql://...
+JWT_SECRET=your-secret
+POSTGRES_PASSWORD=your-password
+AZURE_TENANT_ID=...
+AZURE_CLIENT_ID=...
+AZURE_CLIENT_SECRET=...
+AZURE_SUBSCRIPTION_ID=...
+GCP_PROJECT_ID=...
+GCP_BILLING_ACCOUNT_ID=...
+GCP_SERVICE_ACCOUNT_KEY=<base64 encoded>
+DOMAIN_NAME=billing.yourdomain.com
+API_URL=https://api.billing.yourdomain.com
+```
+
+### Workflows
+
+1. **Build and Push** (`.github/workflows/build-and-push.yml`)
+   - Triggers on push to `main` or `develop`
+   - Builds Docker images
+   - Pushes to ACR
+   - Runs security scans
+
+2. **Deploy to AKS** (`.github/workflows/deploy-to-aks.yml`)
+   - Triggers after successful build
+   - Deploys with Helm
+   - Runs database migrations
+   - Verifies deployment
+
+## 🔧 Configuration
+
+### Helm Values
+
+Edit `helm/billing-platform/values.yaml`:
+
+```yaml
+backend:
+  replicaCount: 3
+  autoscaling:
+    minReplicas: 3
+    maxReplicas: 10
+
+frontend:
+  replicaCount: 2
+  autoscaling:
+    minReplicas: 2
+    maxReplicas: 5
+
+ingress:
+  hosts:
+    - host: billing.yourdomain.com
+    - host: api.billing.yourdomain.com
+```
+
+### Environment Variables
+
+Backend environment variables are managed through Kubernetes secrets:
+- `backend-secret`: Database URL, JWT secret
+- `azure-credentials`: Azure cloud credentials
+- `gcp-credentials`: GCP cloud credentials
+- `postgres-secret`: PostgreSQL credentials
+
+## 📊 Monitoring
+
+### View Logs
 ```bash
-docker-compose -f docker-compose.dev.yml up -d
+# Backend logs
+kubectl logs -f -l app.kubernetes.io/component=backend -n billing-platform
+
+# Frontend logs
+kubectl logs -f -l app.kubernetes.io/component=frontend -n billing-platform
 ```
 
-3. Install dependencies:
+### Check Status
 ```bash
-npm install
+# Pods
+kubectl get pods -n billing-platform
+
+# Services
+kubectl get svc -n billing-platform
+
+# Ingress
+kubectl get ingress -n billing-platform
+
+# HPA status
+kubectl get hpa -n billing-platform
 ```
 
-4. Set up backend environment:
+## 🔄 Updates and Rollbacks
+
+### Update Application
 ```bash
-cd apps/backend
-cp .env.example .env
-# Edit .env with your credentials
+# Update to new version
+helm upgrade billing-platform ./helm/billing-platform \
+  --namespace billing-platform \
+  --set backend.image.tag=v1.1.0 \
+  --set frontend.image.tag=v1.1.0 \
+  --reuse-values
 ```
 
-5. Run database migrations:
+### Rollback
 ```bash
-npx prisma generate
-npx prisma db push
+# View history
+helm history billing-platform -n billing-platform
+
+# Rollback
+helm rollback billing-platform -n billing-platform
 ```
 
-6. Go back to root and start development servers:
+## 🔒 Security
+
+- ✅ HTTPS/TLS with Let's Encrypt
+- ✅ Network policies enabled
+- ✅ Secrets management with Kubernetes
+- ✅ Non-root containers
+- ✅ Security scanning with Trivy
+- ✅ RBAC enabled
+- ✅ Pod security policies
+- ✅ Private container registry
+
+## 📈 Scaling
+
+### Horizontal Pod Autoscaling (HPA)
+
+Backend automatically scales based on:
+- CPU utilization (70% target)
+- Memory utilization (80% target)
+- Min: 3 pods, Max: 10 pods
+
+Frontend automatically scales based on:
+- CPU utilization (70% target)
+- Min: 2 pods, Max: 5 pods
+
+### Manual Scaling
 ```bash
-cd ../..
-npm run dev
+kubectl scale deployment billing-platform-backend \
+  --replicas=5 -n billing-platform
 ```
 
-#### Option B: Full Docker Setup (All Services in Containers)
+## 💰 Cost Optimization
 
-1. Clone the repository:
-```bash
-git clone https://github.com/surendra-bandaru/cloud-cost.git
-cd cloud-cost
-```
+1. Use Azure Reserved Instances for production
+2. Enable cluster autoscaler (configured)
+3. Set appropriate resource limits
+4. Use spot instances for dev/test
+5. Monitor with Azure Cost Management
 
-2. Build and start all services:
-```bash
-docker-compose up -d --build
-```
-
-3. Run migrations inside the container:
-```bash
-docker exec -it billing-backend npx prisma generate
-docker exec -it billing-backend npx prisma db push
-```
-
-#### Quick Commands
-
-```bash
-# Start only infrastructure (postgres + redis)
-docker-compose -f docker-compose.dev.yml up -d
-
-# Start all services with build
-docker-compose up -d --build
-
-# Stop all services
-docker-compose down
-
-# View logs
-docker-compose logs -f
-
-# Rebuild specific service
-docker-compose build backend
-docker-compose up -d backend
-```
-
-The application will be available at:
-- Frontend: http://localhost:3000
-- Backend API: http://localhost:4000
-- API Docs: http://localhost:4000/api-docs
-
-## Configuration
-
-### Azure Setup
-1. Create an Azure AD application
-2. Grant necessary permissions for billing data access
-3. Add credentials to `.env`:
-```env
-AZURE_TENANT_ID=your-tenant-id
-AZURE_CLIENT_ID=your-client-id
-AZURE_CLIENT_SECRET=your-client-secret
-AZURE_SUBSCRIPTION_ID=your-subscription-id
-```
-
-### GCP Setup
-1. Enable BigQuery Billing Export
-2. Create a service account with billing viewer permissions
-3. Download service account key JSON
-4. Add configuration to `.env`:
-```env
-GCP_PROJECT_ID=your-project-id
-GCP_BILLING_ACCOUNT_ID=your-billing-account-id
-GOOGLE_APPLICATION_CREDENTIALS=./gcp-service-account.json
-```
-
-## API Endpoints
-
-### Authentication
-- `POST /api/auth/register` - Register new user
-- `POST /api/auth/login` - Login
-- `POST /api/auth/logout` - Logout
-- `GET /api/auth/me` - Get current user
-
-### Billing
-- `GET /api/billing/summary` - Get cost summary
-- `GET /api/billing/trends` - Get cost trends
-- `GET /api/billing/services` - Service breakdown
-- `GET /api/billing/resources` - Resource costs
-- `GET /api/billing/forecast` - Cost forecast
-- `POST /api/billing/sync` - Sync billing data
-
-### Budgets
-- `GET /api/budgets` - List budgets
-- `POST /api/budgets` - Create budget
-- `PUT /api/budgets/:id` - Update budget
-- `DELETE /api/budgets/:id` - Delete budget
-- `GET /api/budgets/:id/status` - Budget status
-
-### Analytics
-- `GET /api/analytics/cost-by-service` - Cost by service
-- `GET /api/analytics/cost-by-region` - Cost by region
-- `GET /api/analytics/cost-by-tag` - Cost by tag
-- `GET /api/analytics/anomalies` - Detect anomalies
-- `GET /api/analytics/optimization-recommendations` - Get recommendations
-
-### Cloud Accounts
-- `GET /api/cloud-accounts` - List accounts
-- `POST /api/cloud-accounts` - Add account
-- `PUT /api/cloud-accounts/:id` - Update account
-- `DELETE /api/cloud-accounts/:id` - Remove account
-- `POST /api/cloud-accounts/:id/sync` - Sync account
-
-### Alerts
-- `GET /api/alerts` - List alerts
-- `PUT /api/alerts/:id/read` - Mark as read
-- `DELETE /api/alerts/:id` - Delete alert
-
-## Database Schema
-
-The platform uses PostgreSQL with Prisma ORM. Key models:
-- **User**: User accounts with role-based access
-- **Organization**: Multi-tenant organizations
-- **CloudAccount**: Azure/GCP account configurations
-- **BillingData**: Historical billing records
-- **Budget**: Budget definitions and thresholds
-- **Alert**: System alerts and notifications
-- **CostAllocation**: Tag-based cost allocation
-
-## Background Jobs
-
-Automated tasks run via node-cron:
-- **Billing Sync**: Every 6 hours
-- **Budget Checks**: Every hour
-- **Anomaly Detection**: Daily
-- **Report Generation**: Weekly
-
-## Security
-
-- JWT-based authentication
-- Password hashing with bcrypt
-- Rate limiting on all endpoints
-- Helmet.js security headers
-- CORS configuration
-- Input validation with Joi
-- SQL injection protection via Prisma
-
-## Performance
-
-- Redis caching for frequently accessed data
-- Database query optimization with indexes
-- Compression middleware
-- Efficient pagination
-- Background job processing
-
-## Monitoring & Logging
-
-- Winston logger with file rotation
-- Error tracking and reporting
-- Performance metrics
-- API request logging
-
-## Testing
+## 🧹 Cleanup
 
 ```bash
-# Run tests
-npm run test
+# Delete application
+helm uninstall billing-platform -n billing-platform
 
-# Run with coverage
-npm run test:coverage
+# Delete namespace
+kubectl delete namespace billing-platform
+
+# Delete AKS cluster
+az aks delete \
+  --resource-group billing-platform-rg \
+  --name billing-aks-cluster \
+  --yes
+
+# Delete resource group
+az group delete \
+  --name billing-platform-rg \
+  --yes
 ```
 
-## Deployment
+## 📚 Documentation
 
-### Docker Production
-```bash
-docker-compose -f docker-compose.prod.yml up -d
-```
+- [Kubernetes Deployment Guide](./K8S-DEPLOYMENT.md)
+- [Helm Chart Documentation](./helm/billing-platform/README.md)
+- [API Documentation](./docs/API.md)
+- [Architecture Overview](./docs/ARCHITECTURE.md)
 
-### Manual Deployment
-1. Build the applications:
-```bash
-npm run build
-```
-
-2. Set production environment variables
-
-3. Run migrations:
-```bash
-cd apps/backend
-npm run migrate
-```
-
-4. Start the services:
-```bash
-npm run start
-```
-
-## Contributing
+## 🤝 Contributing
 
 1. Fork the repository
 2. Create a feature branch
@@ -290,13 +280,21 @@ npm run start
 4. Push to the branch
 5. Create a Pull Request
 
-## License
+## 📝 License
 
 MIT License - see LICENSE file for details
 
-## Support
+## 🆘 Support
 
-For issues and questions:
-- GitHub Issues: [repository-url]/issues
-- Documentation: [docs-url]
-- Email: support@example.com
+- GitHub Issues: [Create an issue](https://github.com/surendra-bandaru/cloud-cost/issues)
+- Documentation: [Wiki](https://github.com/surendra-bandaru/cloud-cost/wiki)
+
+## 🎯 Roadmap
+
+- [ ] AWS support
+- [ ] Advanced ML-based cost predictions
+- [ ] Slack/Teams notifications
+- [ ] Custom dashboards
+- [ ] Cost allocation rules engine
+- [ ] Multi-region deployment
+- [ ] Disaster recovery setup

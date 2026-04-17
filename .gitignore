@@ -42,13 +42,10 @@ Thumbs.db
 # Prisma
 prisma/migrations/
 
-# Docker
-docker-compose.override.yml
-
 # Credentials
 *.pem
 *.key
-*.json
+gcp-service-account.json
 !package.json
 !tsconfig.json
 !turbo.json
@@ -56,3 +53,7 @@ docker-compose.override.yml
 # Misc
 .turbo/
 *.tsbuildinfo
+
+# Kubernetes
+*.kubeconfig
+secrets.yaml

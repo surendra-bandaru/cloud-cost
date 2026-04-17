@@ -1,0 +1,141 @@
+name: Deploy to AKS
+
+on:
+  workflow_run:
+    workflows: ["Build and Push to ACR"]
+    types:
+      - completed
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy to'
+        required: true
+        default: 'production'
+        type: choice
+        options:
+          - production
+          - staging
+
+env:
+  ACR_NAME: ${{ secrets.ACR_NAME }}
+  RESOURCE_GROUP: ${{ secrets.AZURE_RESOURCE_GROUP }}
+  AKS_CLUSTER: ${{ secrets.AKS_CLUSTER_NAME }}
+  NAMESPACE: billing-platform
+
+jobs:
+  deploy:
+    name: Deploy to AKS
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment || 'production' }}
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Azure Login
+      uses: azure/login@v1
+      with:
+        creds: ${{ secrets.AZURE_CREDENTIALS }}
+    
+    - name: Set AKS context
+      uses: azure/aks-set-context@v3
+      with:
+        resource-group: ${{ env.RESOURCE_GROUP }}
+        cluster-name: ${{ env.AKS_CLUSTER }}
+    
+    - name: Create namespace if not exists
+      run: |
+        kubectl create namespace ${{ env.NAMESPACE }} --dry-run=client -o yaml | kubectl apply -f -
+    
+    - name: Create ACR secret
+      run: |
+        kubectl create secret docker-registry acr-secret \
+          --docker-server=${{ secrets.ACR_NAME }}.azurecr.io \
+          --docker-username=${{ secrets.ACR_USERNAME }} \
+          --docker-password=${{ secrets.ACR_PASSWORD }} \
+          --namespace=${{ env.NAMESPACE }} \
+          --dry-run=client -o yaml | kubectl apply -f -
+    
+    - name: Create backend secrets
+      run: |
+        kubectl create secret generic backend-secret \
+          --from-literal=database-url="${{ secrets.DATABASE_URL }}" \
+          --from-literal=jwt-secret="${{ secrets.JWT_SECRET }}" \
+          --namespace=${{ env.NAMESPACE }} \
+          --dry-run=client -o yaml | kubectl apply -f -
+    
+    - name: Create Azure credentials secret
+      run: |
+        kubectl create secret generic azure-credentials \
+          --from-literal=tenant-id="${{ secrets.AZURE_TENANT_ID }}" \
+          --from-literal=client-id="${{ secrets.AZURE_CLIENT_ID }}" \
+          --from-literal=client-secret="${{ secrets.AZURE_CLIENT_SECRET }}" \
+          --from-literal=subscription-id="${{ secrets.AZURE_SUBSCRIPTION_ID }}" \
+          --namespace=${{ env.NAMESPACE }} \
+          --dry-run=client -o yaml | kubectl apply -f -
+    
+    - name: Create GCP credentials secret
+      run: |
+        kubectl create secret generic gcp-credentials \
+          --from-literal=project-id="${{ secrets.GCP_PROJECT_ID }}" \
+          --from-literal=billing-account-id="${{ secrets.GCP_BILLING_ACCOUNT_ID }}" \
+          --namespace=${{ env.NAMESPACE }} \
+          --dry-run=client -o yaml | kubectl apply -f -
+        
+        echo "${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}" | base64 -d > /tmp/gcp-key.json
+        kubectl create secret generic gcp-service-account \
+          --from-file=service-account.json=/tmp/gcp-key.json \
+          --namespace=${{ env.NAMESPACE }} \
+          --dry-run=client -o yaml | kubectl apply -f -
+        rm /tmp/gcp-key.json
+    
+    - name: Create Postgres secret
+      run: |
+        kubectl create secret generic postgres-secret \
+          --from-literal=database=billing_db \
+          --from-literal=username=billing_user \
+          --from-literal=password="${{ secrets.POSTGRES_PASSWORD }}" \
+          --namespace=${{ env.NAMESPACE }} \
+          --dry-run=client -o yaml | kubectl apply -f -
+    
+    - name: Install Helm
+      uses: azure/setup-helm@v3
+      with:
+        version: '3.12.0'
+    
+    - name: Add Helm repositories
+      run: |
+        helm repo add bitnami https://charts.bitnami.com/bitnami
+        helm repo update
+    
+    - name: Deploy with Helm
+      run: |
+        helm upgrade --install billing-platform ./helm/billing-platform \
+          --namespace ${{ env.NAMESPACE }} \
+          --set backend.image.tag=${{ github.sha }} \
+          --set frontend.image.tag=${{ github.sha }} \
+          --set backend.image.registry=${{ secrets.ACR_NAME }}.azurecr.io \
+          --set frontend.image.registry=${{ secrets.ACR_NAME }}.azurecr.io \
+          --set ingress.hosts[0].host=${{ secrets.DOMAIN_NAME }} \
+          --set ingress.hosts[1].host=api.${{ secrets.DOMAIN_NAME }} \
+          --wait \
+          --timeout 10m
+    
+    - name: Run database migrations
+      run: |
+        kubectl exec -n ${{ env.NAMESPACE }} \
+          deployment/billing-platform-backend \
+          -- npx prisma migrate deploy
+    
+    - name: Verify deployment
+      run: |
+        kubectl rollout status deployment/billing-platform-backend -n ${{ env.NAMESPACE }}
+        kubectl rollout status deployment/billing-platform-frontend -n ${{ env.NAMESPACE }}
+    
+    - name: Get service URLs
+      run: |
+        echo "Backend URL: https://api.${{ secrets.DOMAIN_NAME }}"
+        echo "Frontend URL: https://${{ secrets.DOMAIN_NAME }}"
+        kubectl get ingress -n ${{ env.NAMESPACE }}
