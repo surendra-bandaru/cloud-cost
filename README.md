@@ -55,38 +55,80 @@ cloud-billing-enterprise/
 
 ### Installation
 
+#### Option A: Development with Local Node.js (Recommended for Development)
+
 1. Clone the repository:
 ```bash
-git clone <repository-url>
-cd cloud-billing-enterprise
+git clone https://github.com/surendra-bandaru/cloud-cost.git
+cd cloud-cost
 ```
 
-2. Install dependencies:
+2. Start infrastructure only (PostgreSQL + Redis):
+```bash
+docker-compose -f docker-compose.dev.yml up -d
+```
+
+3. Install dependencies:
 ```bash
 npm install
 ```
 
-3. Set up environment variables:
+4. Set up backend environment:
 ```bash
 cd apps/backend
 cp .env.example .env
 # Edit .env with your credentials
 ```
 
-4. Start with Docker:
-```bash
-docker-compose up -d
-```
-
 5. Run database migrations:
 ```bash
-cd apps/backend
-npm run migrate
+npx prisma generate
+npx prisma db push
 ```
 
-6. Start development servers:
+6. Go back to root and start development servers:
 ```bash
+cd ../..
 npm run dev
+```
+
+#### Option B: Full Docker Setup (All Services in Containers)
+
+1. Clone the repository:
+```bash
+git clone https://github.com/surendra-bandaru/cloud-cost.git
+cd cloud-cost
+```
+
+2. Build and start all services:
+```bash
+docker-compose up -d --build
+```
+
+3. Run migrations inside the container:
+```bash
+docker exec -it billing-backend npx prisma generate
+docker exec -it billing-backend npx prisma db push
+```
+
+#### Quick Commands
+
+```bash
+# Start only infrastructure (postgres + redis)
+docker-compose -f docker-compose.dev.yml up -d
+
+# Start all services with build
+docker-compose up -d --build
+
+# Stop all services
+docker-compose down
+
+# View logs
+docker-compose logs -f
+
+# Rebuild specific service
+docker-compose build backend
+docker-compose up -d backend
 ```
 
 The application will be available at:
