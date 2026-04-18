@@ -22,7 +22,7 @@ export const authenticate = async (req: Request, res: Response, next: NextFuncti
       return res.status(401).json({ error: 'User not found' });
     }
 
-    req.user = user;
+    req.user = user as any;
     next();
   } catch (error) {
     res.status(401).json({ error: 'Invalid token' });

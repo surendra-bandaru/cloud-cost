@@ -11,7 +11,7 @@ export class BillingController {
   getSummary = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const { startDate, endDate, provider, accountId } = req.query;
-      const organizationId = req.user?.organizationId;
+      const organizationId = req.user?.organizationId ?? '';
 
       const summary = await this.billingService.getSummary({
         organizationId,
@@ -30,7 +30,7 @@ export class BillingController {
   getTrends = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const { period, groupBy } = req.query;
-      const organizationId = req.user?.organizationId;
+      const organizationId = req.user?.organizationId ?? '';
 
       const trends = await this.billingService.getTrends({
         organizationId,
@@ -47,7 +47,7 @@ export class BillingController {
   getServiceBreakdown = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const { startDate, endDate } = req.query;
-      const organizationId = req.user?.organizationId;
+      const organizationId = req.user?.organizationId ?? '';
 
       const breakdown = await this.billingService.getServiceBreakdown({
         organizationId,
@@ -64,7 +64,7 @@ export class BillingController {
   getResourceCosts = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const { startDate, endDate, limit } = req.query;
-      const organizationId = req.user?.organizationId;
+      const organizationId = req.user?.organizationId ?? '';
 
       const resources = await this.billingService.getResourceCosts({
         organizationId,
@@ -82,7 +82,7 @@ export class BillingController {
   getForecast = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const { days } = req.query;
-      const organizationId = req.user?.organizationId;
+      const organizationId = req.user?.organizationId ?? '';
 
       const forecast = await this.billingService.getForecast({
         organizationId,
@@ -98,7 +98,7 @@ export class BillingController {
   syncBillingData = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const { accountId } = req.body;
-      const organizationId = req.user?.organizationId;
+      const organizationId = req.user?.organizationId ?? '';
 
       await this.billingService.syncBillingData(organizationId, accountId);
 
