@@ -1,69 +1,19 @@
-# Default values for billing-platform
-# This is a YAML-formatted file.
-
 global:
-  imageRegistry: ""
   imagePullSecrets:
     - name: acr-secret
 
-# Backend configuration
+# Backend
 backend:
   enabled: true
-  replicaCount: 3
+  replicaCount: 1
   image:
     registry: konaaidevacr.azurecr.io
     repository: billing-backend
-    tag: main # backend-tag
-    pullPolicy: IfNotPresent
-  
+    tag: main
+    pullPolicy: Always
   service:
     type: LoadBalancer
     port: 4000
-  
-  resources:
-    requests:
-      memory: "512Mi"
-      cpu: "500m"
-    limits:
-      memory: "1Gi"
-      cpu: "1000m"
-  
-  autoscaling:
-    enabled: true
-    minReplicas: 3
-    maxReplicas: 10
-    targetCPUUtilizationPercentage: 70
-    targetMemoryUtilizationPercentage: 80
-  
-  env:
-    NODE_ENV: production
-    PORT: "4000"
-    JWT_EXPIRES_IN: "7d"
-  
-  secrets:
-    jwtSecret: ""
-    databaseUrl: ""
-    azureTenantId: ""
-    azureClientId: ""
-    azureClientSecret: ""
-    azureSubscriptionId: ""
-    gcpProjectId: ""
-    gcpBillingAccountId: ""
-
-# Frontend configuration
-frontend:
-  enabled: true
-  replicaCount: 2
-  image:
-    registry: konaaidevacr.azurecr.io
-    repository: billing-frontend
-    tag: main # frontend-tag
-    pullPolicy: IfNotPresent
-  
-  service:
-    type: LoadBalancer
-    port: 3000
-  
   resources:
     requests:
       memory: "256Mi"
@@ -71,17 +21,47 @@ frontend:
     limits:
       memory: "512Mi"
       cpu: "500m"
-  
   autoscaling:
-    enabled: true
-    minReplicas: 2
-    maxReplicas: 5
+    enabled: false
+    minReplicas: 1
+    maxReplicas: 3
     targetCPUUtilizationPercentage: 70
-  
+    targetMemoryUtilizationPercentage: 80
   env:
-    NEXT_PUBLIC_API_URL: "https://api.billing.yourdomain.com"
+    NODE_ENV: production
+    PORT: "4000"
+    JWT_SECRET: "billing-platform-jwt-secret-2024"
+    JWT_EXPIRES_IN: "7d"
+    DATABASE_URL: "postgresql://billing_user:billing_pass@billing-platform-postgresql:5432/billing_db"
 
-# PostgreSQL configuration
+# Frontend
+frontend:
+  enabled: true
+  replicaCount: 1
+  image:
+    registry: konaaidevacr.azurecr.io
+    repository: billing-frontend
+    tag: main
+    pullPolicy: Always
+  service:
+    type: LoadBalancer
+    port: 3000
+  resources:
+    requests:
+      memory: "256Mi"
+      cpu: "250m"
+    limits:
+      memory: "512Mi"
+      cpu: "500m"
+  autoscaling:
+    enabled: false
+    minReplicas: 1
+    maxReplicas: 3
+    targetCPUUtilizationPercentage: 70
+  env:
+    NEXT_PUBLIC_API_URL: "http://localhost:4000"
+
+# PostgreSQL
 postgresql:
   enabled: true
   auth:
@@ -91,34 +71,15 @@ postgresql:
   primary:
     persistence:
       storageClass: "managed-premium"
-      size: 20Gi
+      size: 10Gi
 
-# Redis configuration
+# Redis
 redis:
   enabled: true
 
-# Ingress configuration (disabled - using LoadBalancer)
+# Ingress disabled - using LoadBalancer
 ingress:
   enabled: false
 
-# Monitoring
-monitoring:
-  enabled: true
-  serviceMonitor:
-    enabled: true
-    interval: 30s
-
-# Network Policies
-networkPolicy:
-  enabled: true
-  policyTypes:
-    - Ingress
-    - Egress
-
-# Pod Security
-podSecurityPolicy:
-  enabled: true
-
-# Service Account
 serviceAccount:
   create: false

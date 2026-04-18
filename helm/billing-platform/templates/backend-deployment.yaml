@@ -46,17 +46,11 @@ spec:
         - name: PORT
           value: {{ .Values.backend.env.PORT | quote }}
         - name: DATABASE_URL
-          valueFrom:
-            secretKeyRef:
-              name: {{ include "billing-platform.fullname" . }}-backend-secret
-              key: database-url
+          value: {{ .Values.backend.env.DATABASE_URL | quote }}
         - name: REDIS_URL
           value: "redis://{{ include "billing-platform.fullname" . }}-redis-master:6379"
         - name: JWT_SECRET
-          valueFrom:
-            secretKeyRef:
-              name: {{ include "billing-platform.fullname" . }}-backend-secret
-              key: jwt-secret
+          value: {{ .Values.backend.env.JWT_SECRET | quote }}
         - name: JWT_EXPIRES_IN
           value: {{ .Values.backend.env.JWT_EXPIRES_IN | quote }}
         livenessProbe:
