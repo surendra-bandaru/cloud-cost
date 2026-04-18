@@ -1,5 +1,5 @@
 import { ClientSecretCredential } from '@azure/identity';
-import { CostManagementClient } from '@azure/arm-costmanagement';
+import { ConsumptionManagementClient } from '@azure/arm-consumption';
 import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
@@ -14,7 +14,7 @@ export class AzureBillingService {
       creds.clientSecret
     );
 
-    const client = new CostManagementClient(credential);
+    const client = new ConsumptionManagementClient(credential, account.accountId);
     const scope = `/subscriptions/${account.accountId}`;
 
     // Last 30 days
@@ -25,44 +25,22 @@ export class AzureBillingService {
     const fmt = (d: Date) => d.toISOString().split('T')[0];
 
     try {
-      const result = await client.query.usage(scope, {
-        type: 'ActualCost',
-        timeframe: 'Custom',
-        timePeriod: { from: new Date(fmt(startDate)), to: new Date(fmt(endDate)) },
-        dataset: {
-          granularity: 'Daily',
-          aggregation: {
-            totalCost: { name: 'Cost', function: 'Sum' },
-          },
-          grouping: [
-            { type: 'Dimension', name: 'ServiceName' },
-            { type: 'Dimension', name: 'ResourceId' },
-          ],
-        },
+      const usageDetails = client.usageDetails.list(scope, {
+        expand: 'properties/meterDetails',
+        filter: `properties/usageStart ge '${fmt(startDate)}' AND properties/usageEnd le '${fmt(endDate)}'`,
       });
 
-      const rows = result.rows || [];
-      const cols = result.columns || [];
-
-      // Map column names
-      const colIndex: any = {};
-      cols.forEach((c: any, i: number) => { colIndex[c.name] = i; });
-
       let saved = 0;
-      for (const row of rows) {
-        const cost = parseFloat(row[colIndex['Cost']] ?? row[0]) || 0;
-        const dateVal = row[colIndex['UsageDate']] ?? row[colIndex['BillingMonth']] ?? row[2];
-        const service = row[colIndex['ServiceName']] ?? row[colIndex['ServiceCategory']] ?? 'Unknown';
-        const resourceId = row[colIndex['ResourceId']] ?? null;
+      for await (const item of usageDetails) {
+        const props = (item as any).properties || {};
+        const cost = parseFloat(props.pretaxCost ?? props.cost ?? props.costInBillingCurrency ?? 0);
+        const service = props.consumedService || props.meterDetails?.meterCategory || props.product || 'Unknown';
+        const resourceId = props.instanceId || props.resourceId || null;
+        const dateStr = props.usageStart || props.date;
 
-        if (!dateVal || cost === 0) continue;
+        if (!dateStr || cost === 0) continue;
 
-        // Parse date - Azure returns YYYYMMDD as number
-        const dateStr = String(dateVal);
-        const parsedDate = dateStr.length === 8
-          ? new Date(`${dateStr.slice(0, 4)}-${dateStr.slice(4, 6)}-${dateStr.slice(6, 8)}`)
-          : new Date(dateStr);
-
+        const parsedDate = new Date(dateStr);
         if (isNaN(parsedDate.getTime())) continue;
 
         try {
@@ -71,33 +49,34 @@ export class AzureBillingService {
               cloudAccountId_date_service_resourceId: {
                 cloudAccountId: account.id,
                 date: parsedDate,
-                service: String(service),
-                resourceId: resourceId ? String(resourceId) : null,
+                service: String(service).slice(0, 255),
+                resourceId: resourceId ? String(resourceId).slice(0, 500) : null,
               },
             },
             update: { cost },
             create: {
               cloudAccountId: account.id,
               date: parsedDate,
-              service: String(service),
-              resourceId: resourceId ? String(resourceId) : null,
+              service: String(service).slice(0, 255),
+              resourceId: resourceId ? String(resourceId).slice(0, 500) : null,
+              resourceName: props.resourceName || null,
+              region: props.resourceLocation || null,
               cost,
-              currency: 'USD',
+              currency: props.billingCurrency || 'USD',
             },
           });
           saved++;
         } catch (e) {
-          // skip duplicate
+          // skip duplicates
         }
       }
 
-      // Update last sync time
       await prisma.cloudAccount.update({
         where: { id: account.id },
         data: { lastSyncAt: new Date() },
       });
 
-      return { synced: saved, total: rows.length };
+      return { synced: saved };
     } catch (err: any) {
       throw new Error(`Azure sync failed: ${err.message}`);
     }
