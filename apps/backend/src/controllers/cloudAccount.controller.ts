@@ -34,6 +34,14 @@ export class CloudAccountController {
           organizationId: req.user?.organizationId ?? '',
         },
       });
+
+      // Trigger initial sync in background
+      const { BillingService } = await import('../services/billing.service');
+      const billingService = new BillingService();
+      billingService.syncBillingData(req.user?.organizationId ?? '', account.id)
+        .then(() => console.log(`Initial sync complete for account ${account.id}`))
+        .catch((e: any) => console.error(`Initial sync failed: ${e.message}`));
+
       res.status(201).json(account);
     } catch (error) {
       next(error);
