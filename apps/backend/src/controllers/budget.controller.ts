@@ -7,7 +7,7 @@ export class BudgetController {
   getBudgets = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const budgets = await prisma.budget.findMany({
-        where: { organizationId: req.user?.organizationId },
+        where: { organizationId: req.user?.organizationId ?? undefined },
       });
       res.json(budgets);
     } catch (error) {
@@ -31,8 +31,8 @@ export class BudgetController {
       const budget = await prisma.budget.create({
         data: {
           ...req.body,
-          organizationId: req.user?.organizationId,
-          userId: req.user?.id,
+          organizationId: req.user?.organizationId ?? '',
+          userId: req.user?.id ?? '',
         },
       });
       res.status(201).json(budget);

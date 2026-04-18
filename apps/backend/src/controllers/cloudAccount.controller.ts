@@ -7,7 +7,7 @@ export class CloudAccountController {
   getCloudAccounts = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const accounts = await prisma.cloudAccount.findMany({
-        where: { organizationId: req.user?.organizationId },
+        where: { organizationId: req.user?.organizationId ?? undefined },
       });
       res.json(accounts);
     } catch (error) {
@@ -31,7 +31,7 @@ export class CloudAccountController {
       const account = await prisma.cloudAccount.create({
         data: {
           ...req.body,
-          organizationId: req.user?.organizationId,
+          organizationId: req.user?.organizationId ?? '',
         },
       });
       res.status(201).json(account);
