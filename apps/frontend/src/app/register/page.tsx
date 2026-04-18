@@ -55,7 +55,7 @@ export default function RegisterPage() {
       localStorage.setItem('user', JSON.stringify(response.data.user));
       router.push('/dashboard');
     } catch (err: any) {
-      setError(err.response?.data?.error || 'Registration failed');
+      setError(err.response?.data?.error || err.response?.data?.message || err.message || 'Registration failed');
     } finally {
       setLoading(false);
     }
