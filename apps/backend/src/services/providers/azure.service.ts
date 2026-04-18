@@ -1,5 +1,6 @@
 import { DefaultAzureCredential } from '@azure/identity';
 import { ConsumptionManagementClient } from '@azure/arm-consumption';
+import { BillingManagementClient } from '@azure/arm-billing';
 import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
