@@ -22,9 +22,6 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
 
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v3
-
     - name: Login to ACR
       uses: docker/login-action@v3
       with:
@@ -32,26 +29,23 @@ jobs:
         username: ${{ secrets.ACR_USERNAME }}
         password: ${{ secrets.ACR_PASSWORD }}
 
-    - name: Extract metadata for Docker
-      id: meta
-      uses: docker/metadata-action@v5
-      with:
-        images: ${{ secrets.ACR_NAME }}.azurecr.io/billing-backend
-        tags: |
-          type=ref,event=branch
-          type=ref,event=pr
-          type=sha,prefix={{branch}}-
-
     - name: Build and push Backend image
-      uses: docker/build-push-action@v5
-      with:
-        context: ./apps/backend
-        file: ./apps/backend/Dockerfile.prod
-        push: ${{ github.event_name != 'pull_request' }}
-        tags: ${{ steps.meta.outputs.tags }}
-        labels: ${{ steps.meta.outputs.labels }}
-        build-args: |
-          NODE_ENV=production
+      run: |
+        IMAGE=${{ secrets.ACR_NAME }}.azurecr.io/billing-backend
+        TAG=${GITHUB_REF_NAME}-${GITHUB_SHA::7}
+
+        docker build \
+          -f ./apps/backend/Dockerfile.prod \
+          --build-arg NODE_ENV=production \
+          -t $IMAGE:$TAG \
+          -t $IMAGE:${GITHUB_REF_NAME} \
+          ./apps/backend
+
+        docker push $IMAGE:$TAG
+        docker push $IMAGE:${GITHUB_REF_NAME}
+
+        echo "IMAGE_TAG=$TAG" >> $GITHUB_ENV
+        echo "✅ Backend pushed: $IMAGE:$TAG"
 
   build-frontend:
     name: Build and Push Frontend
@@ -61,9 +55,6 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
 
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v3
-
     - name: Login to ACR
       uses: docker/login-action@v3
       with:
@@ -71,23 +62,20 @@ jobs:
         username: ${{ secrets.ACR_USERNAME }}
         password: ${{ secrets.ACR_PASSWORD }}
 
-    - name: Extract metadata for Docker
-      id: meta
-      uses: docker/metadata-action@v5
-      with:
-        images: ${{ secrets.ACR_NAME }}.azurecr.io/billing-frontend
-        tags: |
-          type=ref,event=branch
-          type=ref,event=pr
-          type=sha,prefix={{branch}}-
-
     - name: Build and push Frontend image
-      uses: docker/build-push-action@v5
-      with:
-        context: ./apps/frontend
-        file: ./apps/frontend/Dockerfile.prod
-        push: ${{ github.event_name != 'pull_request' }}
-        tags: ${{ steps.meta.outputs.tags }}
-        labels: ${{ steps.meta.outputs.labels }}
-        build-args: |
-          NEXT_PUBLIC_API_URL=${{ secrets.API_URL }}
+      run: |
+        IMAGE=${{ secrets.ACR_NAME }}.azurecr.io/billing-frontend
+        TAG=${GITHUB_REF_NAME}-${GITHUB_SHA::7}
+
+        docker build \
+          -f ./apps/frontend/Dockerfile.prod \
+          --build-arg NEXT_PUBLIC_API_URL=${{ secrets.API_URL }} \
+          -t $IMAGE:$TAG \
+          -t $IMAGE:${GITHUB_REF_NAME} \
+          ./apps/frontend
+
+        docker push $IMAGE:$TAG
+        docker push $IMAGE:${GITHUB_REF_NAME}
+
+        echo "IMAGE_TAG=$TAG" >> $GITHUB_ENV
+        echo "✅ Frontend pushed: $IMAGE:$TAG"
