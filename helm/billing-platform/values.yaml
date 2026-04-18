@@ -11,9 +11,9 @@ backend:
   enabled: true
   replicaCount: 3
   image:
-    registry: ${ACR_NAME}.azurecr.io
+    registry: konaaidevacr.azurecr.io
     repository: billing-backend
-    tag: latest # backend-tag
+    tag: main # backend-tag
     pullPolicy: IfNotPresent
   
   service:
@@ -55,9 +55,9 @@ frontend:
   enabled: true
   replicaCount: 2
   image:
-    registry: ${ACR_NAME}.azurecr.io
+    registry: konaaidevacr.azurecr.io
     repository: billing-frontend
-    tag: latest # frontend-tag
+    tag: main # frontend-tag
     pullPolicy: IfNotPresent
   
   service:
