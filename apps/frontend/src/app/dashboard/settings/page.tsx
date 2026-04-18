@@ -115,6 +115,20 @@ export default function SettingsPage() {
           <form onSubmit={handleAzureSubmit}>
             <h2 style={{ fontSize: 18, fontWeight: 600, marginBottom: 16 }}>Connect Azure Account</h2>
             
+            <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 6, padding: 16, marginBottom: 24 }}>
+              <h3 style={{ fontSize: 14, fontWeight: 600, color: '#1e40af', marginBottom: 8 }}>📋 Setup Instructions</h3>
+              <ol style={{ fontSize: 13, color: '#1e3a8a', marginLeft: 20, lineHeight: 1.6 }}>
+                <li>Create a Service Principal in Azure Portal or using Azure CLI:
+                  <code style={{ display: 'block', background: '#dbeafe', padding: 8, borderRadius: 4, marginTop: 4, fontSize: 12, fontFamily: 'monospace' }}>
+                    az ad sp create-for-rbac --name "BillingApp" --role "Cost Management Reader"
+                  </code>
+                </li>
+                <li style={{ marginTop: 8 }}>Assign "Cost Management Reader" role to the Service Principal at Subscription level</li>
+                <li style={{ marginTop: 8 }}>Copy the Tenant ID, Client ID (appId), and Client Secret (password) from the output</li>
+                <li style={{ marginTop: 8 }}>Get your Subscription ID from Azure Portal → Subscriptions</li>
+              </ol>
+            </div>
+            
             <div style={{ marginBottom: 16 }}>
               <label style={labelStyle}>Tenant ID</label>
               <input
@@ -196,6 +210,22 @@ export default function SettingsPage() {
         {activeTab === 'gcp' && (
           <form onSubmit={handleGcpSubmit}>
             <h2 style={{ fontSize: 18, fontWeight: 600, marginBottom: 16 }}>Connect GCP Account</h2>
+            
+            <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 6, padding: 16, marginBottom: 24 }}>
+              <h3 style={{ fontSize: 14, fontWeight: 600, color: '#15803d', marginBottom: 8 }}>📋 Setup Instructions</h3>
+              <ol style={{ fontSize: 13, color: '#166534', marginLeft: 20, lineHeight: 1.6 }}>
+                <li>Go to GCP Console → IAM & Admin → Service Accounts</li>
+                <li style={{ marginTop: 8 }}>Create a new Service Account with these roles:
+                  <ul style={{ marginLeft: 20, marginTop: 4 }}>
+                    <li>Billing Account Viewer</li>
+                    <li>BigQuery Data Viewer (if using BigQuery export)</li>
+                  </ul>
+                </li>
+                <li style={{ marginTop: 8 }}>Create and download a JSON key for the Service Account</li>
+                <li style={{ marginTop: 8 }}>Enable Cloud Billing API in your project</li>
+                <li style={{ marginTop: 8 }}>Get your Billing Account ID from Billing → Account Management</li>
+              </ol>
+            </div>
             
             <div style={{ marginBottom: 16 }}>
               <label style={labelStyle}>Project ID</label>
