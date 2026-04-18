@@ -13,12 +13,3 @@ keywords:
 maintainers:
   - name: Surendra Bandaru
     email: sbandaru@example.com
-dependencies:
-  - name: postgresql
-    version: "12.x.x"
-    repository: "https://charts.bitnami.com/bitnami"
-    condition: postgresql.enabled
-  - name: redis
-    version: "18.x.x"
-    repository: "https://charts.bitnami.com/bitnami"
-    condition: redis.enabled

@@ -86,36 +86,16 @@ postgresql:
   enabled: true
   auth:
     username: billing_user
-    password: ""
+    password: "billing_pass"
     database: billing_db
   primary:
     persistence:
-      enabled: true
       storageClass: "managed-premium"
       size: 20Gi
-    resources:
-      requests:
-        memory: "256Mi"
-        cpu: "250m"
-      limits:
-        memory: "512Mi"
-        cpu: "500m"
 
 # Redis configuration
 redis:
   enabled: true
-  auth:
-    enabled: false
-  master:
-    persistence:
-      enabled: false
-    resources:
-      requests:
-        memory: "128Mi"
-        cpu: "100m"
-      limits:
-        memory: "256Mi"
-        cpu: "200m"
 
 # Ingress configuration (disabled - using LoadBalancer)
 ingress:
