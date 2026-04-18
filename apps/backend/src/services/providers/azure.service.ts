@@ -34,14 +34,32 @@ export class AzureBillingService {
 
       let saved = 0;
       let skipped = 0;
+      let debugged = false;
       for await (const item of usageDetails) {
         const props = (item as any).properties || {};
-        const cost = parseFloat(props.pretaxCost ?? props.cost ?? props.costInBillingCurrency ?? 0);
-        const service = props.consumedService || props.meterDetails?.meterCategory || props.product || 'Unknown';
-        const resourceId = props.instanceId || props.resourceId || null;
-        const dateStr = props.usageStart || props.date;
 
-        if (!dateStr || cost === 0) { skipped++; continue; }
+        // Log first item to see actual field names
+        if (!debugged) {
+          console.log('Azure item sample:', JSON.stringify(item, null, 2).slice(0, 1000));
+          console.log('Azure props keys:', Object.keys(props));
+          debugged = true;
+        }
+
+        // Try all possible cost field names Azure uses
+        const cost = parseFloat(
+          props.pretaxCost ??
+          props.cost ??
+          props.costInBillingCurrency ??
+          props.effectivePrice ??
+          props.paygCostInBillingCurrency ??
+          props.quantity ??
+          0
+        );
+        const service = props.consumedService || props.meterDetails?.meterCategory || props.product || props.meterCategory || 'Unknown';
+        const resourceId = props.instanceId || props.resourceId || props.resourceGroup || null;
+        const dateStr = props.usageStart || props.date || props.billingPeriodStartDate;
+
+        if (!dateStr) { skipped++; continue; }
 
         const parsedDate = new Date(dateStr);
         if (isNaN(parsedDate.getTime())) { skipped++; continue; }
