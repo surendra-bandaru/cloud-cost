@@ -44,7 +44,6 @@ jobs:
         docker push $IMAGE:$TAG
         docker push $IMAGE:${GITHUB_REF_NAME}
 
-        echo "IMAGE_TAG=$TAG" >> $GITHUB_ENV
         echo "✅ Backend pushed: $IMAGE:$TAG"
 
   build-frontend:
@@ -77,5 +76,4 @@ jobs:
         docker push $IMAGE:$TAG
         docker push $IMAGE:${GITHUB_REF_NAME}
 
-        echo "IMAGE_TAG=$TAG" >> $GITHUB_ENV
         echo "✅ Frontend pushed: $IMAGE:$TAG"

@@ -13,7 +13,7 @@ backend:
   image:
     registry: ${ACR_NAME}.azurecr.io
     repository: billing-backend
-    tag: latest
+    tag: latest # backend-tag
     pullPolicy: IfNotPresent
   
   service:
@@ -57,7 +57,7 @@ frontend:
   image:
     registry: ${ACR_NAME}.azurecr.io
     repository: billing-frontend
-    tag: latest
+    tag: latest # frontend-tag
     pullPolicy: IfNotPresent
   
   service:
