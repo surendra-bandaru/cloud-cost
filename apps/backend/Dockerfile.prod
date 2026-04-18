@@ -5,7 +5,9 @@ FROM node:18-alpine AS builder
 
 WORKDIR /app
 
-# Copy package files
+# Install OpenSSL for Prisma
+RUN apk add --no-cache openssl openssl-dev
+
 COPY package*.json ./
 COPY prisma ./prisma/
 
@@ -29,8 +31,8 @@ FROM node:18-alpine
 
 WORKDIR /app
 
-# Install dumb-init for proper signal handling
-RUN apk add --no-cache dumb-init
+# Install OpenSSL and dumb-init
+RUN apk add --no-cache dumb-init openssl openssl-dev
 
 # Create non-root user
 RUN addgroup -g 1001 -S nodejs && \
