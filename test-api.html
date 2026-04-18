@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>API Test</title>
+</head>
+<body>
+    <h1>Cloud Billing API Test</h1>
+    
+    <div>
+        <h2>1. Test Backend Health</h2>
+        <button onclick="testHealth()">Test Health Endpoint</button>
+        <pre id="health-result"></pre>
+    </div>
+
+    <div>
+        <h2>2. Login</h2>
+        <input type="email" id="email" placeholder="Email" value="surendrabandaru58@gmail.com">
+        <input type="password" id="password" placeholder="Password" value="password">
+        <button onclick="login()">Login</button>
+        <pre id="login-result"></pre>
+    </div>
+
+    <div>
+        <h2>3. Test Cloud Account Creation</h2>
+        <button onclick="testCloudAccount()">Create Test Cloud Account</button>
+        <pre id="cloud-result"></pre>
+    </div>
+
+    <script>
+        const API_URL = 'http://13.71.54.206:4000/api';
+        let token = localStorage.getItem('token');
+
+        async function testHealth() {
+            try {
+                const response = await fetch('http://13.71.54.206:4000/health');
+                const data = await response.json();
+                document.getElementById('health-result').textContent = JSON.stringify(data, null, 2);
+            } catch (error) {
+                document.getElementById('health-result').textContent = 'Error: ' + error.message;
+            }
+        }
+
+        async function login() {
+            try {
+                const email = document.getElementById('email').value;
+                const password = document.getElementById('password').value;
+                
+                const response = await fetch(`${API_URL}/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    token = data.token;
+                    localStorage.setItem('token', token);
+                    document.getElementById('login-result').textContent = 'Success!\n' + JSON.stringify(data, null, 2);
+                } else {
+                    document.getElementById('login-result').textContent = 'Error: ' + JSON.stringify(data, null, 2);
+                }
+            } catch (error) {
+                document.getElementById('login-result').textContent = 'Error: ' + error.message;
+            }
+        }
+
+        async function testCloudAccount() {
+            if (!token) {
+                document.getElementById('cloud-result').textContent = 'Please login first!';
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_URL}/cloud-accounts`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        provider: 'AZURE',
+                        name: 'Test Azure Account',
+                        credentials: {
+                            tenantId: 'test-tenant',
+                            clientId: 'test-client',
+                            clientSecret: 'test-secret',
+                            subscriptionId: 'test-subscription'
+                        }
+                    })
+                });
+                
+                const data = await response.json();
+                document.getElementById('cloud-result').textContent = 
+                    `Status: ${response.status}\n` + JSON.stringify(data, null, 2);
+            } catch (error) {
+                document.getElementById('cloud-result').textContent = 'Error: ' + error.message;
+            }
+        }
+    </script>
+
+    <style>
+        body { font-family: Arial; padding: 20px; }
+        div { margin: 20px 0; padding: 20px; border: 1px solid #ccc; }
+        button { padding: 10px 20px; margin: 5px; cursor: pointer; }
+        input { padding: 8px; margin: 5px; width: 200px; }
+        pre { background: #f5f5f5; padding: 10px; overflow: auto; }
+    </style>
+</body>
+</html>

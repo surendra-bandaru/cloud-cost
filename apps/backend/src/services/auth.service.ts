@@ -11,8 +11,12 @@ const getPrisma = () => {
   return prisma;
 };
 
-// In-memory store as fallback when DB is unavailable
-const memUsers: any[] = [];
+// In-memory store as fallback when DB is unavailable (shared globally across restarts)
+declare global {
+  var memUsers: any[];
+}
+if (!global.memUsers) global.memUsers = [];
+const memUsers = global.memUsers;
 
 const generateToken = (userId: string) => {
   return jwt.sign({ userId }, process.env.JWT_SECRET as string || 'fallback-secret', {
