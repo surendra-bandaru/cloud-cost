@@ -3,6 +3,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import compression from 'compression';
 import dotenv from 'dotenv';
+import { execSync } from 'child_process';
 import { errorHandler } from './middleware/errorHandler';
 import { rateLimiter } from './middleware/rateLimiter';
 import logger from './utils/logger';
@@ -10,6 +11,21 @@ import routes from './routes';
 import { initializeJobs } from './jobs';
 
 dotenv.config();
+
+// Run DB migrations on startup
+try {
+  logger.info('Running database migrations...');
+  execSync('npx prisma migrate deploy', { stdio: 'inherit' });
+  logger.info('Database migrations completed');
+} catch (e: any) {
+  logger.warn('Migration failed, trying db push...', e.message);
+  try {
+    execSync('npx prisma db push --accept-data-loss', { stdio: 'inherit' });
+    logger.info('Database schema pushed successfully');
+  } catch (e2: any) {
+    logger.warn('DB push also failed, continuing anyway:', e2.message);
+  }
+}
 
 const app = express();
 const PORT = process.env.PORT || 4000;
