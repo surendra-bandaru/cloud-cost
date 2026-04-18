@@ -1,12 +1,12 @@
 'use client';
 
-import { useState } from 'react';
-import { api } from '@/lib/api';
+import { useState, useEffect } from 'react';
 
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState<'azure' | 'gcp'>('azure');
   const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState('');
+  const [message, setMessage] = useState({ text: '', type: '' });
+  const [accounts, setAccounts] = useState<any[]>([]);
 
   const [azureConfig, setAzureConfig] = useState({
     tenantId: '',
@@ -21,30 +21,66 @@ export default function SettingsPage() {
     serviceAccountKey: '',
   });
 
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://13.71.54.206:4000/api';
+
+  const getToken = () => localStorage.getItem('token') || '';
+
+  useEffect(() => {
+    fetchAccounts();
+  }, []);
+
+  const fetchAccounts = async () => {
+    try {
+      const res = await fetch(`${apiUrl}/cloud-accounts`, {
+        headers: { Authorization: `Bearer ${getToken()}` },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setAccounts(data);
+      }
+    } catch (e) {
+      // ignore
+    }
+  };
+
   const handleAzureSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setMessage('');
+    setMessage({ text: '', type: '' });
+
+    const token = getToken();
+    if (!token) {
+      setMessage({ text: 'No auth token found. Please login again.', type: 'error' });
+      setLoading(false);
+      return;
+    }
+
     try {
-      const response = await api.post('/cloud-accounts', {
-        provider: 'AZURE',
-        name: 'Azure Account',
-        credentials: azureConfig,
+      const res = await fetch(`${apiUrl}/cloud-accounts`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          provider: 'AZURE',
+          accountId: azureConfig.subscriptionId,
+          accountName: 'Azure - ' + azureConfig.subscriptionId.slice(0, 8),
+          credentials: azureConfig,
+        }),
       });
-      setMessage('✅ Azure account connected successfully!');
-      setAzureConfig({ tenantId: '', clientId: '', clientSecret: '', subscriptionId: '' });
-    } catch (err: any) {
-      console.error('Azure connection error:', err);
-      if (err.response?.status === 401) {
-        setMessage('❌ Authentication failed. Please login again.');
-        setTimeout(() => {
-          localStorage.removeItem('token');
-          localStorage.removeItem('user');
-          window.location.href = '/login';
-        }, 2000);
+
+      const data = await res.json();
+
+      if (res.ok) {
+        setMessage({ text: 'Azure account connected successfully!', type: 'success' });
+        setAzureConfig({ tenantId: '', clientId: '', clientSecret: '', subscriptionId: '' });
+        fetchAccounts();
       } else {
-        setMessage('❌ ' + (err.response?.data?.error || err.message || 'Failed to connect Azure account'));
+        setMessage({ text: data.error || data.message || `Error ${res.status}`, type: 'error' });
       }
+    } catch (err: any) {
+      setMessage({ text: 'Network error: ' + err.message, type: 'error' });
     } finally {
       setLoading(false);
     }
@@ -53,264 +89,191 @@ export default function SettingsPage() {
   const handleGcpSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setMessage('');
+    setMessage({ text: '', type: '' });
+
+    const token = getToken();
+    if (!token) {
+      setMessage({ text: 'No auth token found. Please login again.', type: 'error' });
+      setLoading(false);
+      return;
+    }
+
     try {
-      const response = await api.post('/cloud-accounts', {
-        provider: 'GCP',
-        name: 'GCP Account',
-        credentials: gcpConfig,
+      const res = await fetch(`${apiUrl}/cloud-accounts`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          provider: 'GCP',
+          accountId: gcpConfig.projectId,
+          accountName: 'GCP - ' + gcpConfig.projectId,
+          credentials: gcpConfig,
+        }),
       });
-      setMessage('✅ GCP account connected successfully!');
-      setGcpConfig({ projectId: '', billingAccountId: '', serviceAccountKey: '' });
-    } catch (err: any) {
-      console.error('GCP connection error:', err);
-      if (err.response?.status === 401) {
-        setMessage('❌ Authentication failed. Please login again.');
-        setTimeout(() => {
-          localStorage.removeItem('token');
-          localStorage.removeItem('user');
-          window.location.href = '/login';
-        }, 2000);
+
+      const data = await res.json();
+
+      if (res.ok) {
+        setMessage({ text: 'GCP account connected successfully!', type: 'success' });
+        setGcpConfig({ projectId: '', billingAccountId: '', serviceAccountKey: '' });
+        fetchAccounts();
       } else {
-        setMessage('❌ ' + (err.response?.data?.error || err.message || 'Failed to connect GCP account'));
+        setMessage({ text: data.error || data.message || `Error ${res.status}`, type: 'error' });
       }
+    } catch (err: any) {
+      setMessage({ text: 'Network error: ' + err.message, type: 'error' });
     } finally {
       setLoading(false);
     }
   };
 
-  const inputStyle = {
+  const input = {
     width: '100%',
     padding: '10px 12px',
-    border: '1px solid #d1d5db',
+    background: '#1f2937',
+    border: '1px solid #374151',
     borderRadius: 6,
     fontSize: 14,
+    color: '#f9fafb',
+    outline: 'none',
+    boxSizing: 'border-box' as const,
   };
 
-  const labelStyle = {
+  const label = {
     display: 'block',
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: 500,
-    color: '#374151',
+    color: '#9ca3af',
     marginBottom: 6,
   };
 
-  return (
-    <div style={{ padding: 24 }}>
-      <h1 style={{ fontSize: 24, fontWeight: 600, marginBottom: 24 }}>Cloud Account Settings</h1>
+  const field = { marginBottom: 16 };
 
-      <div style={{ background: 'white', borderRadius: 8, padding: 24, boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
-        <div style={{ display: 'flex', gap: 16, borderBottom: '1px solid #e5e7eb', marginBottom: 24 }}>
-          <button
-            onClick={() => setActiveTab('azure')}
-            style={{
-              padding: '12px 24px',
-              background: 'none',
-              border: 'none',
-              borderBottom: activeTab === 'azure' ? '2px solid #667eea' : '2px solid transparent',
-              color: activeTab === 'azure' ? '#667eea' : '#6b7280',
-              fontWeight: 600,
-              cursor: 'pointer',
-            }}
-          >
-            Azure
-          </button>
-          <button
-            onClick={() => setActiveTab('gcp')}
-            style={{
-              padding: '12px 24px',
-              background: 'none',
-              border: 'none',
-              borderBottom: activeTab === 'gcp' ? '2px solid #667eea' : '2px solid transparent',
-              color: activeTab === 'gcp' ? '#667eea' : '#6b7280',
-              fontWeight: 600,
-              cursor: 'pointer',
-            }}
-          >
-            GCP
-          </button>
+  return (
+    <div style={{ maxWidth: 700 }}>
+      <h1 style={{ fontSize: 22, fontWeight: 700, color: '#f9fafb', marginBottom: 8 }}>Cloud Account Settings</h1>
+      <p style={{ color: '#6b7280', fontSize: 14, marginBottom: 24 }}>Connect your cloud providers to start fetching billing data.</p>
+
+      {/* Connected Accounts */}
+      {accounts.length > 0 && (
+        <div style={{ background: '#111827', border: '1px solid #1f2937', borderRadius: 8, padding: 16, marginBottom: 24 }}>
+          <h2 style={{ fontSize: 14, fontWeight: 600, color: '#9ca3af', marginBottom: 12 }}>CONNECTED ACCOUNTS</h2>
+          {accounts.map((acc: any) => (
+            <div key={acc.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '8px 0', borderBottom: '1px solid #1f2937' }}>
+              <span style={{ fontSize: 20 }}>{acc.provider === 'AZURE' ? '🔷' : '🟢'}</span>
+              <div>
+                <p style={{ color: '#f9fafb', fontSize: 14, fontWeight: 500 }}>{acc.accountName}</p>
+                <p style={{ color: '#6b7280', fontSize: 12 }}>{acc.provider} · {acc.accountId}</p>
+              </div>
+              <span style={{ marginLeft: 'auto', background: '#065f46', color: '#6ee7b7', fontSize: 11, padding: '2px 8px', borderRadius: 12 }}>Active</span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Tabs */}
+      <div style={{ background: '#111827', border: '1px solid #1f2937', borderRadius: 8, overflow: 'hidden' }}>
+        <div style={{ display: 'flex', borderBottom: '1px solid #1f2937' }}>
+          {(['azure', 'gcp'] as const).map(tab => (
+            <button key={tab} onClick={() => { setActiveTab(tab); setMessage({ text: '', type: '' }); }}
+              style={{
+                flex: 1, padding: '14px', background: activeTab === tab ? '#1f2937' : 'transparent',
+                border: 'none', borderBottom: activeTab === tab ? '2px solid #3b82f6' : '2px solid transparent',
+                color: activeTab === tab ? '#f9fafb' : '#6b7280',
+                fontWeight: 600, fontSize: 14, cursor: 'pointer', textTransform: 'uppercase', letterSpacing: 1,
+              }}>
+              {tab === 'azure' ? '🔷 Azure' : '🟢 GCP'}
+            </button>
+          ))}
         </div>
 
-        {activeTab === 'azure' && (
-          <form onSubmit={handleAzureSubmit}>
-            <h2 style={{ fontSize: 18, fontWeight: 600, marginBottom: 16 }}>Connect Azure Account</h2>
-            
-            <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 6, padding: 16, marginBottom: 24 }}>
-              <h3 style={{ fontSize: 14, fontWeight: 600, color: '#1e40af', marginBottom: 8 }}>📋 Setup Instructions</h3>
-              <ol style={{ fontSize: 13, color: '#1e3a8a', marginLeft: 20, lineHeight: 1.6 }}>
-                <li>Create a Service Principal in Azure Portal or using Azure CLI:
-                  <code style={{ display: 'block', background: '#dbeafe', padding: 8, borderRadius: 4, marginTop: 4, fontSize: 12, fontFamily: 'monospace' }}>
-                    az ad sp create-for-rbac --name "BillingApp" --role "Cost Management Reader"
-                  </code>
-                </li>
-                <li style={{ marginTop: 8 }}>Assign "Cost Management Reader" role to the Service Principal at Subscription level</li>
-                <li style={{ marginTop: 8 }}>Copy the Tenant ID, Client ID (appId), and Client Secret (password) from the output</li>
-                <li style={{ marginTop: 8 }}>Get your Subscription ID from Azure Portal → Subscriptions</li>
-              </ol>
+        <div style={{ padding: 24 }}>
+          {/* Message */}
+          {message.text && (
+            <div style={{
+              padding: '12px 16px', borderRadius: 6, marginBottom: 20, fontSize: 14,
+              background: message.type === 'success' ? '#064e3b' : '#7f1d1d',
+              border: `1px solid ${message.type === 'success' ? '#065f46' : '#991b1b'}`,
+              color: message.type === 'success' ? '#6ee7b7' : '#fca5a5',
+            }}>
+              {message.type === 'success' ? '✅ ' : '❌ '}{message.text}
             </div>
-            
-            <div style={{ marginBottom: 16 }}>
-              <label style={labelStyle}>Tenant ID</label>
-              <input
-                type="text"
-                value={azureConfig.tenantId}
-                onChange={(e) => setAzureConfig({ ...azureConfig, tenantId: e.target.value })}
-                style={inputStyle}
-                placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
-                required
-              />
-            </div>
+          )}
 
-            <div style={{ marginBottom: 16 }}>
-              <label style={labelStyle}>Client ID</label>
-              <input
-                type="text"
-                value={azureConfig.clientId}
-                onChange={(e) => setAzureConfig({ ...azureConfig, clientId: e.target.value })}
-                style={inputStyle}
-                placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
-                required
-              />
-            </div>
-
-            <div style={{ marginBottom: 16 }}>
-              <label style={labelStyle}>Client Secret</label>
-              <input
-                type="password"
-                value={azureConfig.clientSecret}
-                onChange={(e) => setAzureConfig({ ...azureConfig, clientSecret: e.target.value })}
-                style={inputStyle}
-                placeholder="Your client secret"
-                required
-              />
-            </div>
-
-            <div style={{ marginBottom: 24 }}>
-              <label style={labelStyle}>Subscription ID</label>
-              <input
-                type="text"
-                value={azureConfig.subscriptionId}
-                onChange={(e) => setAzureConfig({ ...azureConfig, subscriptionId: e.target.value })}
-                style={inputStyle}
-                placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
-                required
-              />
-            </div>
-
-            {message && (
-              <div style={{
-                padding: 12,
-                borderRadius: 6,
-                marginBottom: 16,
-                background: message.includes('success') ? '#d1fae5' : '#fee2e2',
-                color: message.includes('success') ? '#065f46' : '#991b1b',
-              }}>
-                {message}
+          {activeTab === 'azure' && (
+            <form onSubmit={handleAzureSubmit}>
+              <div style={{ background: '#1e3a5f', border: '1px solid #1d4ed8', borderRadius: 6, padding: 14, marginBottom: 20 }}>
+                <p style={{ color: '#93c5fd', fontSize: 13, fontWeight: 600, marginBottom: 6 }}>📋 Azure Service Principal Required</p>
+                <code style={{ display: 'block', background: '#172554', color: '#bfdbfe', padding: 10, borderRadius: 4, fontSize: 12, fontFamily: 'monospace' }}>
+                  az ad sp create-for-rbac --name "BillingApp" --role "Cost Management Reader" --scopes /subscriptions/YOUR_SUB_ID
+                </code>
               </div>
-            )}
 
-            <button
-              type="submit"
-              disabled={loading}
-              style={{
-                padding: '10px 20px',
-                background: loading ? '#9ca3af' : '#667eea',
-                color: 'white',
-                border: 'none',
-                borderRadius: 6,
-                fontWeight: 600,
-                cursor: loading ? 'not-allowed' : 'pointer',
-              }}
-            >
-              {loading ? 'Connecting...' : 'Connect Azure Account'}
-            </button>
-          </form>
-        )}
-
-        {activeTab === 'gcp' && (
-          <form onSubmit={handleGcpSubmit}>
-            <h2 style={{ fontSize: 18, fontWeight: 600, marginBottom: 16 }}>Connect GCP Account</h2>
-            
-            <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 6, padding: 16, marginBottom: 24 }}>
-              <h3 style={{ fontSize: 14, fontWeight: 600, color: '#15803d', marginBottom: 8 }}>📋 Setup Instructions</h3>
-              <ol style={{ fontSize: 13, color: '#166534', marginLeft: 20, lineHeight: 1.6 }}>
-                <li>Go to GCP Console → IAM & Admin → Service Accounts</li>
-                <li style={{ marginTop: 8 }}>Create a new Service Account with these roles:
-                  <ul style={{ marginLeft: 20, marginTop: 4 }}>
-                    <li>Billing Account Viewer</li>
-                    <li>BigQuery Data Viewer (if using BigQuery export)</li>
-                  </ul>
-                </li>
-                <li style={{ marginTop: 8 }}>Create and download a JSON key for the Service Account</li>
-                <li style={{ marginTop: 8 }}>Enable Cloud Billing API in your project</li>
-                <li style={{ marginTop: 8 }}>Get your Billing Account ID from Billing → Account Management</li>
-              </ol>
-            </div>
-            
-            <div style={{ marginBottom: 16 }}>
-              <label style={labelStyle}>Project ID</label>
-              <input
-                type="text"
-                value={gcpConfig.projectId}
-                onChange={(e) => setGcpConfig({ ...gcpConfig, projectId: e.target.value })}
-                style={inputStyle}
-                placeholder="my-project-id"
-                required
-              />
-            </div>
-
-            <div style={{ marginBottom: 16 }}>
-              <label style={labelStyle}>Billing Account ID</label>
-              <input
-                type="text"
-                value={gcpConfig.billingAccountId}
-                onChange={(e) => setGcpConfig({ ...gcpConfig, billingAccountId: e.target.value })}
-                style={inputStyle}
-                placeholder="XXXXXX-XXXXXX-XXXXXX"
-                required
-              />
-            </div>
-
-            <div style={{ marginBottom: 24 }}>
-              <label style={labelStyle}>Service Account Key (JSON)</label>
-              <textarea
-                value={gcpConfig.serviceAccountKey}
-                onChange={(e) => setGcpConfig({ ...gcpConfig, serviceAccountKey: e.target.value })}
-                style={{ ...inputStyle, minHeight: 120, fontFamily: 'monospace', fontSize: 12 }}
-                placeholder='{"type": "service_account", ...}'
-                required
-              />
-            </div>
-
-            {message && (
-              <div style={{
-                padding: 12,
-                borderRadius: 6,
-                marginBottom: 16,
-                background: message.includes('success') ? '#d1fae5' : '#fee2e2',
-                color: message.includes('success') ? '#065f46' : '#991b1b',
-              }}>
-                {message}
+              <div style={field}>
+                <label style={label}>Tenant ID</label>
+                <input style={input} value={azureConfig.tenantId} onChange={e => setAzureConfig({ ...azureConfig, tenantId: e.target.value })} placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" required />
               </div>
-            )}
+              <div style={field}>
+                <label style={label}>Client ID (App ID)</label>
+                <input style={input} value={azureConfig.clientId} onChange={e => setAzureConfig({ ...azureConfig, clientId: e.target.value })} placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" required />
+              </div>
+              <div style={field}>
+                <label style={label}>Client Secret</label>
+                <input type="password" style={input} value={azureConfig.clientSecret} onChange={e => setAzureConfig({ ...azureConfig, clientSecret: e.target.value })} placeholder="Your service principal secret" required />
+              </div>
+              <div style={field}>
+                <label style={label}>Subscription ID</label>
+                <input style={input} value={azureConfig.subscriptionId} onChange={e => setAzureConfig({ ...azureConfig, subscriptionId: e.target.value })} placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" required />
+              </div>
 
-            <button
-              type="submit"
-              disabled={loading}
-              style={{
-                padding: '10px 20px',
-                background: loading ? '#9ca3af' : '#667eea',
-                color: 'white',
-                border: 'none',
-                borderRadius: 6,
-                fontWeight: 600,
-                cursor: loading ? 'not-allowed' : 'pointer',
-              }}
-            >
-              {loading ? 'Connecting...' : 'Connect GCP Account'}
-            </button>
-          </form>
-        )}
+              <button type="submit" disabled={loading} style={{
+                padding: '11px 24px', background: loading ? '#374151' : '#2563eb',
+                color: 'white', border: 'none', borderRadius: 6, fontWeight: 600,
+                fontSize: 14, cursor: loading ? 'not-allowed' : 'pointer', width: '100%',
+              }}>
+                {loading ? 'Connecting...' : 'Connect Azure Account'}
+              </button>
+            </form>
+          )}
+
+          {activeTab === 'gcp' && (
+            <form onSubmit={handleGcpSubmit}>
+              <div style={{ background: '#14532d', border: '1px solid #166534', borderRadius: 6, padding: 14, marginBottom: 20 }}>
+                <p style={{ color: '#86efac', fontSize: 13, fontWeight: 600, marginBottom: 6 }}>📋 GCP Service Account Required</p>
+                <code style={{ display: 'block', background: '#052e16', color: '#bbf7d0', padding: 10, borderRadius: 4, fontSize: 12, fontFamily: 'monospace' }}>
+                  gcloud iam service-accounts keys create key.json --iam-account=SA_EMAIL
+                </code>
+              </div>
+
+              <div style={field}>
+                <label style={label}>Project ID</label>
+                <input style={input} value={gcpConfig.projectId} onChange={e => setGcpConfig({ ...gcpConfig, projectId: e.target.value })} placeholder="my-gcp-project-id" required />
+              </div>
+              <div style={field}>
+                <label style={label}>Billing Account ID</label>
+                <input style={input} value={gcpConfig.billingAccountId} onChange={e => setGcpConfig({ ...gcpConfig, billingAccountId: e.target.value })} placeholder="XXXXXX-XXXXXX-XXXXXX" required />
+              </div>
+              <div style={field}>
+                <label style={label}>Service Account Key (JSON)</label>
+                <textarea style={{ ...input, minHeight: 120, fontFamily: 'monospace', fontSize: 12, resize: 'vertical' }}
+                  value={gcpConfig.serviceAccountKey}
+                  onChange={e => setGcpConfig({ ...gcpConfig, serviceAccountKey: e.target.value })}
+                  placeholder='{"type": "service_account", "project_id": "...", ...}'
+                  required />
+              </div>
+
+              <button type="submit" disabled={loading} style={{
+                padding: '11px 24px', background: loading ? '#374151' : '#16a34a',
+                color: 'white', border: 'none', borderRadius: 6, fontWeight: 600,
+                fontSize: 14, cursor: loading ? 'not-allowed' : 'pointer', width: '100%',
+              }}>
+                {loading ? 'Connecting...' : 'Connect GCP Account'}
+              </button>
+            </form>
+          )}
+        </div>
       </div>
     </div>
   );
