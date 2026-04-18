@@ -121,6 +121,4 @@ podSecurityPolicy:
 
 # Service Account
 serviceAccount:
-  create: true
-  annotations: {}
-  name: "billing-platform-sa"
+  create: false
