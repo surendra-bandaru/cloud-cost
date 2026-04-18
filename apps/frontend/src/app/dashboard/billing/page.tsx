@@ -40,8 +40,16 @@ export default function BillingPage() {
         body: JSON.stringify({}),
       });
       const data = await res.json();
-      setMessage(res.ok ? '✅ Sync started! Data will appear shortly.' : '❌ ' + (data.error || 'Sync failed'));
-      if (res.ok) setTimeout(fetchData, 5000);
+      if (res.ok) {
+        const synced = data.result?.synced ?? data.result?.total ?? 0;
+        setMessage(synced > 0
+          ? `✅ Synced ${synced} records successfully!`
+          : '⚠️ Sync complete but no data returned. Check your Azure permissions (Cost Management Reader role required).'
+        );
+        fetchData();
+      } else {
+        setMessage('❌ ' + (data.error || data.message || 'Sync failed'));
+      }
     } catch (e: any) {
       setMessage('❌ ' + e.message);
     }

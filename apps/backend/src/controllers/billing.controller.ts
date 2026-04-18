@@ -100,10 +100,13 @@ export class BillingController {
       const { accountId } = req.body;
       const organizationId = req.user?.organizationId ?? '';
 
-      await this.billingService.syncBillingData(organizationId, accountId);
+      console.log(`Starting billing sync for org: ${organizationId}, account: ${accountId || 'all'}`);
+      const result = await this.billingService.syncBillingData(organizationId, accountId);
+      console.log('Billing sync result:', result);
 
-      res.json({ message: 'Billing data sync initiated' });
-    } catch (error) {
+      res.json({ message: 'Sync complete', result });
+    } catch (error: any) {
+      console.error('Billing sync error:', error.message);
       next(error);
     }
   };

@@ -25,12 +25,15 @@ export class AzureBillingService {
     const fmt = (d: Date) => d.toISOString().split('T')[0];
 
     try {
+      console.log(`Starting Azure sync for account: ${account.accountId}, scope: ${scope}`);
+
       const usageDetails = client.usageDetails.list(scope, {
         expand: 'properties/meterDetails',
         filter: `properties/usageStart ge '${fmt(startDate)}' AND properties/usageEnd le '${fmt(endDate)}'`,
       });
 
       let saved = 0;
+      let skipped = 0;
       for await (const item of usageDetails) {
         const props = (item as any).properties || {};
         const cost = parseFloat(props.pretaxCost ?? props.cost ?? props.costInBillingCurrency ?? 0);
@@ -38,10 +41,10 @@ export class AzureBillingService {
         const resourceId = props.instanceId || props.resourceId || null;
         const dateStr = props.usageStart || props.date;
 
-        if (!dateStr || cost === 0) continue;
+        if (!dateStr || cost === 0) { skipped++; continue; }
 
         const parsedDate = new Date(dateStr);
-        if (isNaN(parsedDate.getTime())) continue;
+        if (isNaN(parsedDate.getTime())) { skipped++; continue; }
 
         try {
           await prisma.billingData.upsert({
@@ -67,17 +70,20 @@ export class AzureBillingService {
           });
           saved++;
         } catch (e) {
-          // skip duplicates
+          skipped++;
         }
       }
+
+      console.log(`Azure sync complete: ${saved} saved, ${skipped} skipped`);
 
       await prisma.cloudAccount.update({
         where: { id: account.id },
         data: { lastSyncAt: new Date() },
       });
 
-      return { synced: saved };
+      return { synced: saved, skipped };
     } catch (err: any) {
+      console.error('Azure sync error:', err.message);
       throw new Error(`Azure sync failed: ${err.message}`);
     }
   }

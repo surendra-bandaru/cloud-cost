@@ -71,8 +71,19 @@ export class CloudAccountController {
 
   syncAccount = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      res.json({ message: 'Sync initiated' });
-    } catch (error) {
+      const account = await prisma.cloudAccount.findUnique({
+        where: { id: req.params.id },
+      });
+      if (!account) return res.status(404).json({ error: 'Account not found' });
+
+      const { BillingService } = await import('../services/billing.service');
+      const billingService = new BillingService();
+
+      // Run sync and wait for result
+      const result = await billingService.syncBillingData(account.organizationId, account.id);
+      res.json({ message: 'Sync complete', result });
+    } catch (error: any) {
+      console.error('Sync error:', error.message);
       next(error);
     }
   };
