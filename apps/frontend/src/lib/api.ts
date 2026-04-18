@@ -1,11 +1,19 @@
 import axios from 'axios';
 
 const getBaseURL = () => {
-  // Use environment variable or fallback to backend LoadBalancer IP
-  if (typeof window !== 'undefined' && process.env.NEXT_PUBLIC_API_URL) {
+  // Check for runtime environment variable (set by Kubernetes)
+  if (typeof window !== 'undefined') {
+    // Try to get from window object (injected at runtime)
+    const apiUrl = (window as any).__NEXT_PUBLIC_API_URL__;
+    if (apiUrl) return apiUrl;
+  }
+  
+  // Fallback to build-time env var
+  if (process.env.NEXT_PUBLIC_API_URL) {
     return process.env.NEXT_PUBLIC_API_URL;
   }
-  // Fallback to backend service IP
+  
+  // Final fallback to backend LoadBalancer IP
   return 'http://13.71.54.206:4000/api';
 };
 

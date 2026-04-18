@@ -68,7 +68,7 @@ jobs:
 
         docker build \
           -f ./apps/frontend/Dockerfile.prod \
-          --build-arg NEXT_PUBLIC_API_URL=${{ secrets.API_URL }} \
+          --build-arg NEXT_PUBLIC_API_URL=http://13.71.54.206:4000/api \
           -t $IMAGE:$TAG \
           -t $IMAGE:${GITHUB_REF_NAME} \
           ./apps/frontend
