@@ -4,7 +4,7 @@
 global:
   imageRegistry: ""
   imagePullSecrets:
-    - acr-secret
+    - name: acr-secret
 
 # Backend configuration
 backend:
