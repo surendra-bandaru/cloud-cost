@@ -14,6 +14,11 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 4000;
 
+// Health check - before rate limiter
+app.get('/health', (req, res) => {
+  res.json({ status: 'healthy', timestamp: new Date().toISOString() });
+});
+
 // Middleware
 app.use(helmet({ crossOriginResourcePolicy: false }));
 app.use(cors({ origin: '*', credentials: false }));
@@ -24,11 +29,6 @@ app.use(rateLimiter);
 
 // Routes
 app.use('/api', routes);
-
-// Health check
-app.get('/health', (req, res) => {
-  res.json({ status: 'healthy', timestamp: new Date().toISOString() });
-});
 
 // Error handling
 app.use(errorHandler);
