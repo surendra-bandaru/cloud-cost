@@ -26,15 +26,25 @@ export default function SettingsPage() {
     setLoading(true);
     setMessage('');
     try {
-      await api.post('/cloud-accounts', {
+      const response = await api.post('/cloud-accounts', {
         provider: 'AZURE',
         name: 'Azure Account',
         credentials: azureConfig,
       });
-      setMessage('Azure account connected successfully!');
+      setMessage('✅ Azure account connected successfully!');
       setAzureConfig({ tenantId: '', clientId: '', clientSecret: '', subscriptionId: '' });
     } catch (err: any) {
-      setMessage(err.response?.data?.error || 'Failed to connect Azure account');
+      console.error('Azure connection error:', err);
+      if (err.response?.status === 401) {
+        setMessage('❌ Authentication failed. Please login again.');
+        setTimeout(() => {
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
+          window.location.href = '/login';
+        }, 2000);
+      } else {
+        setMessage('❌ ' + (err.response?.data?.error || err.message || 'Failed to connect Azure account'));
+      }
     } finally {
       setLoading(false);
     }
@@ -45,15 +55,25 @@ export default function SettingsPage() {
     setLoading(true);
     setMessage('');
     try {
-      await api.post('/cloud-accounts', {
+      const response = await api.post('/cloud-accounts', {
         provider: 'GCP',
         name: 'GCP Account',
         credentials: gcpConfig,
       });
-      setMessage('GCP account connected successfully!');
+      setMessage('✅ GCP account connected successfully!');
       setGcpConfig({ projectId: '', billingAccountId: '', serviceAccountKey: '' });
     } catch (err: any) {
-      setMessage(err.response?.data?.error || 'Failed to connect GCP account');
+      console.error('GCP connection error:', err);
+      if (err.response?.status === 401) {
+        setMessage('❌ Authentication failed. Please login again.');
+        setTimeout(() => {
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
+          window.location.href = '/login';
+        }, 2000);
+      } else {
+        setMessage('❌ ' + (err.response?.data?.error || err.message || 'Failed to connect GCP account'));
+      }
     } finally {
       setLoading(false);
     }

@@ -36,10 +36,10 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (response) => response,
   (error) => {
+    // Only auto-redirect to login for 401 if it's not from settings page
     if (error.response?.status === 401) {
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-      window.location.href = '/login';
+      // Don't auto-redirect, let the component handle it
+      console.error('Authentication error:', error.response?.data);
     }
     return Promise.reject(error);
   }
