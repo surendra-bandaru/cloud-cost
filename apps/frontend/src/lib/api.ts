@@ -6,7 +6,7 @@ const getBaseURL = () => {
     return process.env.NEXT_PUBLIC_API_URL;
   }
   // Fallback to backend service IP
-  return 'http://40.80.78.179:4000/api';
+  return 'http://13.71.54.206:4000/api';
 };
 
 export const api = axios.create({
