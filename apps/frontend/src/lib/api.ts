@@ -1,11 +1,12 @@
 import axios from 'axios';
 
 const getBaseURL = () => {
-  // Use runtime window location to determine API URL
   if (typeof window !== 'undefined') {
-    return process.env.NEXT_PUBLIC_API_URL || `http://${window.location.hostname}:4000/api`;
+    // Use same host but port 4000 for backend
+    const host = window.location.hostname;
+    return `http://${host}:4000/api`;
   }
-  return process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api';
+  return 'http://localhost:4000/api';
 };
 
 export const api = axios.create({
@@ -18,7 +19,8 @@ export const api = axios.create({
 // Update baseURL on each request to handle dynamic hostname
 api.interceptors.request.use((config) => {
   if (typeof window !== 'undefined') {
-    config.baseURL = process.env.NEXT_PUBLIC_API_URL || `http://${window.location.hostname}:4000/api`;
+    const host = window.location.hostname;
+    config.baseURL = `http://${host}:4000/api`;
   }
   const token = localStorage.getItem('token');
   if (token) {
