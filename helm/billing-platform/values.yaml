@@ -59,7 +59,7 @@ frontend:
     maxReplicas: 3
     targetCPUUtilizationPercentage: 70
   env:
-    NEXT_PUBLIC_API_URL: "http://40.80.78.179:4000/api"
+    NEXT_PUBLIC_API_URL: "http://13.71.54.206:4000/api"
 
 # PostgreSQL
 postgresql:
