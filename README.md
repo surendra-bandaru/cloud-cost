@@ -27,13 +27,10 @@ Production-grade Kubernetes application for Azure and GCP cloud billing manageme
 
 ## 📋 Prerequisites
 
-- Azure CLI (`az`)
-- kubectl
-- Helm 3.x
-- Docker
-- GitHub account
-- Azure subscription
-- Domain name (for production)
+- Azure Kubernetes Service (AKS) cluster (already setup)
+- Azure Container Registry (ACR)
+- kubectl configured
+- GitHub account with repository secrets configured
 
 ## 🏗️ Architecture
 
@@ -42,7 +39,8 @@ Production-grade Kubernetes application for Azure and GCP cloud billing manageme
 │                  Azure Kubernetes Service                │
 │                                                          │
 │  ┌────────────────────────────────────────────────────┐ │
-│  │  Ingress (NGINX + Let's Encrypt)                   │ │
+│  │  LoadBalancer Services                             │ │
+│  │  Frontend IP:3000    Backend IP:4000               │ │
 │  └──────────────┬─────────────────────────────────────┘ │
 │                 │                                        │
 │  ┌──────────────┴──────────────┬────────────────────┐  │
@@ -55,33 +53,67 @@ Production-grade Kubernetes application for Azure and GCP cloud billing manageme
 │  ┌──────────────┬───────────────┴────────────────────┐ │
 │  │              │                                     │ │
 │  │  PostgreSQL  │  Redis                             │ │
-│  │  StatefulSet │  Deployment                        │ │
+│  │  (Bitnami)   │  (Bitnami)                         │ │
 │  └──────────────┴────────────────────────────────────┘ │
 └─────────────────────────────────────────────────────────┘
 ```
 
 ## 🚀 Quick Start
 
-### Option 1: Automated Setup (Recommended)
+### 1. Configure GitHub Secrets
 
-```bash
-# Clone repository
-git clone https://github.com/surendra-bandaru/cloud-cost.git
-cd cloud-cost
+Go to: Repository → Settings → Secrets and variables → Actions
 
-# Make scripts executable
-chmod +x scripts/*.sh
+Add these secrets:
 
-# Setup AKS cluster
-./scripts/setup-aks.sh
+```
+# Azure Container Registry
+ACR_NAME=youracrname
+ACR_USERNAME=<from Azure>
+ACR_PASSWORD=<from Azure>
 
-# Deploy application
-./scripts/deploy-helm.sh
+# Azure Credentials
+AZURE_CREDENTIALS=<service principal JSON>
+AZURE_RESOURCE_GROUP=your-resource-group
+AKS_CLUSTER_NAME=your-aks-cluster
+
+# Application Secrets
+DATABASE_URL=postgresql://...
+JWT_SECRET=your-secret
+POSTGRES_PASSWORD=your-password
+
+# Azure Cloud Credentials
+AZURE_TENANT_ID=...
+AZURE_CLIENT_ID=...
+AZURE_CLIENT_SECRET=...
+AZURE_SUBSCRIPTION_ID=...
+
+# GCP Credentials
+GCP_PROJECT_ID=...
+GCP_BILLING_ACCOUNT_ID=...
+GCP_SERVICE_ACCOUNT_KEY=<base64 encoded>
 ```
 
-### Option 2: Manual Setup
+### 2. Deploy
 
-See [K8S-DEPLOYMENT.md](./K8S-DEPLOYMENT.md) for detailed instructions.
+```bash
+# Push to main branch to trigger GitHub Actions
+git add .
+git commit -m "Deploy to AKS"
+git push origin main
+```
+
+### 3. Access Application
+
+After deployment, get the LoadBalancer IPs:
+
+```bash
+kubectl get svc -n billing-platform
+
+# Access:
+# Frontend: http://<FRONTEND-IP>:3000
+# Backend API: http://<BACKEND-IP>:4000
+```
 
 ## 📦 GitHub Actions CI/CD
 

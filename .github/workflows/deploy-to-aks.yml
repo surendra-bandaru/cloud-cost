@@ -118,8 +118,6 @@ jobs:
           --set frontend.image.tag=${{ github.sha }} \
           --set backend.image.registry=${{ secrets.ACR_NAME }}.azurecr.io \
           --set frontend.image.registry=${{ secrets.ACR_NAME }}.azurecr.io \
-          --set ingress.hosts[0].host=${{ secrets.DOMAIN_NAME }} \
-          --set ingress.hosts[1].host=api.${{ secrets.DOMAIN_NAME }} \
           --wait \
           --timeout 10m
     
@@ -136,6 +134,11 @@ jobs:
     
     - name: Get service URLs
       run: |
-        echo "Backend URL: https://api.${{ secrets.DOMAIN_NAME }}"
-        echo "Frontend URL: https://${{ secrets.DOMAIN_NAME }}"
-        kubectl get ingress -n ${{ env.NAMESPACE }}
+        echo "Getting LoadBalancer IPs..."
+        kubectl get svc -n ${{ env.NAMESPACE }}
+        echo ""
+        echo "Backend LoadBalancer IP:"
+        kubectl get svc billing-platform-backend -n ${{ env.NAMESPACE }} -o jsonpath='{.status.loadBalancer.ingress[0].ip}'
+        echo ""
+        echo "Frontend LoadBalancer IP:"
+        kubectl get svc billing-platform-frontend -n ${{ env.NAMESPACE }} -o jsonpath='{.status.loadBalancer.ingress[0].ip}'

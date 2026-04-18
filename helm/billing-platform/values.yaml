@@ -17,7 +17,7 @@ backend:
     pullPolicy: IfNotPresent
   
   service:
-    type: ClusterIP
+    type: LoadBalancer
     port: 4000
   
   resources:
@@ -61,7 +61,7 @@ frontend:
     pullPolicy: IfNotPresent
   
   service:
-    type: ClusterIP
+    type: LoadBalancer
     port: 3000
   
   resources:
@@ -117,34 +117,9 @@ redis:
         memory: "256Mi"
         cpu: "200m"
 
-# Ingress configuration
+# Ingress configuration (disabled - using LoadBalancer)
 ingress:
-  enabled: true
-  className: nginx
-  annotations:
-    cert-manager.io/cluster-issuer: letsencrypt-prod
-    nginx.ingress.kubernetes.io/ssl-redirect: "true"
-    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
-    nginx.ingress.kubernetes.io/proxy-body-size: "50m"
-    nginx.ingress.kubernetes.io/rate-limit: "100"
-  hosts:
-    - host: billing.yourdomain.com
-      paths:
-        - path: /
-          pathType: Prefix
-          service: frontend
-          port: 3000
-    - host: api.billing.yourdomain.com
-      paths:
-        - path: /
-          pathType: Prefix
-          service: backend
-          port: 4000
-  tls:
-    - secretName: billing-tls
-      hosts:
-        - billing.yourdomain.com
-        - api.billing.yourdomain.com
+  enabled: false
 
 # Monitoring
 monitoring:
