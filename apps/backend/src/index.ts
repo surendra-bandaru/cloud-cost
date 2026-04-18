@@ -34,9 +34,13 @@ app.use('/api', routes);
 app.use(errorHandler);
 
 // Start server
-app.listen(PORT, () => {
+app.listen(PORT, async () => {
   logger.info(`Server running on port ${PORT}`);
-  initializeJobs();
+  try {
+    initializeJobs();
+  } catch (e) {
+    logger.warn('Jobs initialization failed, continuing without jobs');
+  }
 });
 
 export default app;
