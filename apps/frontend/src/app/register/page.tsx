@@ -17,6 +17,26 @@ const registerSchema = z.object({
 
 type RegisterForm = z.infer<typeof registerSchema>;
 
+const inputStyle = {
+  width: '100%',
+  padding: '10px 12px',
+  border: '1px solid #d1d5db',
+  borderRadius: 8,
+  fontSize: 14,
+  color: '#111827',
+  background: 'white',
+  outline: 'none',
+  boxSizing: 'border-box' as const,
+};
+
+const labelStyle = {
+  display: 'block',
+  fontSize: 14,
+  fontWeight: 500,
+  color: '#374151',
+  marginBottom: 6,
+};
+
 export default function RegisterPage() {
   const router = useRouter();
   const [error, setError] = useState('');
@@ -32,6 +52,7 @@ export default function RegisterPage() {
     try {
       const response = await api.post('/auth/register', data);
       localStorage.setItem('token', response.data.token);
+      localStorage.setItem('user', JSON.stringify(response.data.user));
       router.push('/dashboard');
     } catch (err: any) {
       setError(err.response?.data?.error || 'Registration failed');
@@ -41,64 +62,48 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-50 to-primary-100">
-      <div className="max-w-md w-full bg-white rounded-lg shadow-xl p-8">
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Create Account</h1>
-          <p className="text-gray-600 mt-2">Start managing your cloud costs</p>
+    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }}>
+      <div style={{ background: 'white', borderRadius: 12, padding: 40, width: '100%', maxWidth: 460, boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }}>
+        <div style={{ textAlign: 'center', marginBottom: 32 }}>
+          <div style={{ fontSize: 40, marginBottom: 8 }}>☁️</div>
+          <h1 style={{ fontSize: 24, fontWeight: 700, color: '#111827', margin: 0 }}>Create Account</h1>
+          <p style={{ color: '#6b7280', marginTop: 8, fontSize: 14 }}>Start managing your cloud costs</p>
         </div>
 
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
+        <form onSubmit={handleSubmit(onSubmit)}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
             <div>
-              <label className="block text-sm font-medium text-gray-700">First Name</label>
-              <input
-                {...register('firstName')}
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500"
-              />
-              {errors.firstName && <p className="mt-1 text-sm text-red-600">{errors.firstName.message}</p>}
+              <label style={labelStyle}>First Name</label>
+              <input {...register('firstName')} style={inputStyle} placeholder="John" />
+              {errors.firstName && <p style={{ color: '#ef4444', fontSize: 12, marginTop: 4 }}>{errors.firstName.message}</p>}
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700">Last Name</label>
-              <input
-                {...register('lastName')}
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500"
-              />
-              {errors.lastName && <p className="mt-1 text-sm text-red-600">{errors.lastName.message}</p>}
+              <label style={labelStyle}>Last Name</label>
+              <input {...register('lastName')} style={inputStyle} placeholder="Doe" />
+              {errors.lastName && <p style={{ color: '#ef4444', fontSize: 12, marginTop: 4 }}>{errors.lastName.message}</p>}
             </div>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Organization Name</label>
-            <input
-              {...register('organizationName')}
-              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500"
-            />
-            {errors.organizationName && <p className="mt-1 text-sm text-red-600">{errors.organizationName.message}</p>}
+          <div style={{ marginBottom: 16 }}>
+            <label style={labelStyle}>Organization Name</label>
+            <input {...register('organizationName')} style={inputStyle} placeholder="Acme Corp" />
+            {errors.organizationName && <p style={{ color: '#ef4444', fontSize: 12, marginTop: 4 }}>{errors.organizationName.message}</p>}
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Email</label>
-            <input
-              {...register('email')}
-              type="email"
-              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500"
-            />
-            {errors.email && <p className="mt-1 text-sm text-red-600">{errors.email.message}</p>}
+          <div style={{ marginBottom: 16 }}>
+            <label style={labelStyle}>Email</label>
+            <input {...register('email')} type="email" style={inputStyle} placeholder="you@example.com" />
+            {errors.email && <p style={{ color: '#ef4444', fontSize: 12, marginTop: 4 }}>{errors.email.message}</p>}
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Password</label>
-            <input
-              {...register('password')}
-              type="password"
-              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500"
-            />
-            {errors.password && <p className="mt-1 text-sm text-red-600">{errors.password.message}</p>}
+          <div style={{ marginBottom: 24 }}>
+            <label style={labelStyle}>Password</label>
+            <input {...register('password')} type="password" style={inputStyle} placeholder="Min 8 characters" />
+            {errors.password && <p style={{ color: '#ef4444', fontSize: 12, marginTop: 4 }}>{errors.password.message}</p>}
           </div>
 
           {error && (
-            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+            <div style={{ background: '#fef2f2', border: '1px solid #fecaca', color: '#dc2626', padding: '10px 14px', borderRadius: 8, fontSize: 14, marginBottom: 16 }}>
               {error}
             </div>
           )}
@@ -106,14 +111,14 @@ export default function RegisterPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50"
+            style={{ width: '100%', padding: 12, background: loading ? '#9ca3af' : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', color: 'white', border: 'none', borderRadius: 8, fontSize: 15, fontWeight: 600, cursor: loading ? 'not-allowed' : 'pointer' }}
           >
             {loading ? 'Creating account...' : 'Create Account'}
           </button>
         </form>
 
-        <div className="mt-6 text-center">
-          <a href="/login" className="text-sm text-primary-600 hover:text-primary-500">
+        <div style={{ textAlign: 'center', marginTop: 24 }}>
+          <a href="/login" style={{ color: '#667eea', fontSize: 14, textDecoration: 'none' }}>
             Already have an account? Sign in
           </a>
         </div>
